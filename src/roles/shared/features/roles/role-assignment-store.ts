@@ -8,6 +8,7 @@ import {
   validateRoleAssignment,
 } from "./role-assignment";
 import {
+  COLLEGE_ORGANISATIONS,
   ORGANISATIONS,
   isOrganisationScope,
   isSystemRole,
@@ -41,9 +42,9 @@ function legacyOrganisation(role: SystemRole, collegeCode?: string): Organisatio
   if (role === "student" || role === "teacher" || role === "institution_admin") {
     return ORGANISATIONS.siriraj;
   }
-  if (collegeCode === ORGANISATIONS.communityCollege.code) return ORGANISATIONS.communityCollege;
   if (collegeCode === ORGANISATIONS.royalCollege.code) return ORGANISATIONS.royalCollege;
-  return ORGANISATIONS.therapeuticCollege;
+  return COLLEGE_ORGANISATIONS.find((organisation) => organisation.code === collegeCode)
+    ?? ORGANISATIONS.therapeuticCollege;
 }
 
 function defaultResourceScopes(role: SystemRole, organisation: OrganisationScope) {

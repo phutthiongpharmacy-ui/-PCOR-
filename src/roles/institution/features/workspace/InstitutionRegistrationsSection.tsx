@@ -133,7 +133,7 @@ export default function InstitutionRegistrationsSection() {
           </div>
           <div className="space-y-1.5">
             <label htmlFor="institution-registration-course" className="text-sm font-medium text-foreground">
-              รายวิชา
+              รายการเปิดสอน
             </label>
             <select
               id="institution-registration-course"
@@ -141,10 +141,10 @@ export default function InstitutionRegistrationsSection() {
               onChange={(event) => setCourseFilter(event.target.value)}
               className={filterSelectClassName}
             >
-              <option value="all">ทุกรายวิชา</option>
+              <option value="all">ทุกรายการเปิดสอน</option>
               {offerings.map((offering) => (
                 <option key={offering.id} value={offering.id}>
-                  {offering.courseCode} · กลุ่มเรียน {offering.section}
+                  {offering.courseCode} · {offering.courseTitle} · {offering.term}
                 </option>
               ))}
             </select>
@@ -181,7 +181,7 @@ export default function InstitutionRegistrationsSection() {
                     </TableCell>
                     <TableCell>
                       {registration.courseCode}
-                      <p className="text-xs text-muted-foreground">{registration.courseTitle}</p>
+                      <p className="text-xs text-muted-foreground">{registration.courseTitle} · {registration.term}</p>
                     </TableCell>
                     <TableCell><Badge variant={meta.variant}>{meta.label}</Badge></TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -203,7 +203,7 @@ export default function InstitutionRegistrationsSection() {
               <EmptyState
                 icon="manage_search"
                 title="ไม่พบคำขอลงทะเบียน"
-                description="ลองเปลี่ยนคำค้นหา สถานะ หรือรายวิชา"
+                description="ลองเปลี่ยนคำค้นหา สถานะ หรือรายการเปิดสอน"
               />
             </div>
           ) : null}

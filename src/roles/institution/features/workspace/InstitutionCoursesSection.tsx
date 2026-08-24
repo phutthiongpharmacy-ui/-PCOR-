@@ -57,7 +57,6 @@ export default function InstitutionCoursesSection() {
   const [courseTitle, setCourseTitle] = useState("");
   const [credits, setCredits] = useState("");
   const [term, setTerm] = useState("");
-  const [section, setSection] = useState("");
   const [reviewerTeacherId, setReviewerTeacherId] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -80,7 +79,7 @@ export default function InstitutionCoursesSection() {
     const normalized = query.trim().toLocaleLowerCase("th-TH");
     return offerings.filter((offering) => (
       (statusFilter === "all" || offering.status === statusFilter) &&
-      (!normalized || `${offering.courseCode} ${offering.courseTitle} ${offering.term} ${offering.section}`
+      (!normalized || `${offering.courseCode} ${offering.courseTitle} ${offering.term}`
         .toLocaleLowerCase("th-TH")
         .includes(normalized))
     ));
@@ -103,7 +102,6 @@ export default function InstitutionCoursesSection() {
     setCourseTitle("");
     setCredits("");
     setTerm("");
-    setSection("");
     setReviewerTeacherId("");
     setReason("");
     setError("");
@@ -121,7 +119,6 @@ export default function InstitutionCoursesSection() {
     setCourseTitle(offering.courseTitle);
     setCredits(String(offering.credits));
     setTerm(offering.term);
-    setSection(offering.section);
     setReviewerTeacherId(assignedTeacherId ?? teachers[0]?.id ?? "");
     setDialog({ mode: "request", offering });
   };
@@ -131,7 +128,6 @@ export default function InstitutionCoursesSection() {
     setCourseTitle(request.proposedChanges.courseTitle ?? offering.courseTitle);
     setCredits(String(request.proposedChanges.credits ?? offering.credits));
     setTerm(request.proposedChanges.term ?? offering.term);
-    setSection(request.proposedChanges.section ?? offering.section);
     setReviewerTeacherId(request.reviewerTeacherId);
     setDialog({ mode: "resubmit", offering, request });
   };
@@ -147,7 +143,6 @@ export default function InstitutionCoursesSection() {
     if (courseTitle.trim() !== offering.courseTitle) patch.courseTitle = courseTitle.trim();
     if (Number.isFinite(normalizedCredits) && normalizedCredits !== offering.credits) patch.credits = normalizedCredits;
     if (term.trim() !== offering.term) patch.term = term.trim();
-    if (section.trim() !== offering.section) patch.section = section.trim();
     return patch;
   };
 
@@ -176,7 +171,7 @@ export default function InstitutionCoursesSection() {
         setError("กรุณาเลือกอาจารย์ผู้ตรวจสอบ");
         return;
       }
-      if (!courseTitle.trim() || !term.trim() || !section.trim() || Number(credits) <= 0) {
+      if (!courseTitle.trim() || !term.trim() || Number(credits) <= 0) {
         setError("กรุณากรอกข้อมูลรายวิชาให้ครบถ้วน");
         return;
       }
@@ -215,14 +210,14 @@ export default function InstitutionCoursesSection() {
       <WorkspaceHeader
         eyebrow="การเปิดสอนของสถาบัน"
         title="รายวิชาที่เปิดสอน"
-        description="ติดตามรายวิชาที่สถาบันเปิดในแต่ละภาคการศึกษาและกลุ่มเรียน พร้อมส่งคำขอแก้ไขให้อาจารย์ผู้รับผิดชอบตรวจสอบ"
+        description="ติดตามรายการเปิดสอนของสถาบันในแต่ละภาคการศึกษา พร้อมส่งคำขอแก้ไขให้อาจารย์ผู้รับผิดชอบตรวจสอบ"
       />
 
       <Card className="border-info-border bg-info-soft">
         <CardContent className="flex items-start gap-3 p-4 text-sm text-info-on-soft">
           <span aria-hidden="true" className="material-symbols-outlined shrink-0">info</span>
           <p>
-            หน้านี้ใช้จัดการข้อมูลการเปิดสอนของสถาบัน เช่น ภาคการศึกษา กลุ่มเรียน และจำนวนหน่วยกิต
+            หน้านี้ใช้จัดการข้อมูลรายการเปิดสอนของสถาบัน เช่น รายวิชา ภาคการศึกษา และจำนวนหน่วยกิต
             ส่วนการสร้างรายวิชาใหม่เป็นอีกกระบวนการหนึ่ง
           </p>
         </CardContent>
@@ -239,7 +234,7 @@ export default function InstitutionCoursesSection() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="ค้นหารหัส ชื่อ ภาคการศึกษา หรือกลุ่มเรียน"
+              placeholder="ค้นหารหัส ชื่อ หรือภาคการศึกษา"
               className="h-11 rounded-xl text-sm"
             />
           </div>
@@ -262,7 +257,7 @@ export default function InstitutionCoursesSection() {
       </Card>
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
-        พบ {filteredOfferings.length} รายวิชา
+        พบ {filteredOfferings.length} รายการเปิดสอน
       </p>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -312,7 +307,7 @@ export default function InstitutionCoursesSection() {
                 <div>
                   <h2 className="font-semibold text-foreground">{offering.courseCode} · {offering.courseTitle}</h2>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    กลุ่มเรียน {offering.section} · {offering.credits} หน่วยกิต
+                    {offering.credits} หน่วยกิต
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     อาจารย์ที่ตอบรับการสอน {acceptedTeacherCount} คน
@@ -432,15 +427,6 @@ export default function InstitutionCoursesSection() {
                     aria-describedby={error ? "institution-course-error" : undefined}
                   />
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="course-change-section" className="text-sm font-medium">กลุ่มเรียน</label>
-                <Input
-                  id="course-change-section"
-                  value={section}
-                  onChange={(event) => { setSection(event.target.value); setError(""); }}
-                  aria-describedby={error ? "institution-course-error" : undefined}
-                />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="course-change-reviewer" className="text-sm font-medium">อาจารย์ผู้ตรวจสอบ</label>

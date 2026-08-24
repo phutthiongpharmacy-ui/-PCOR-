@@ -7,7 +7,9 @@ import type {
   CpdSummary,
   ProfessionalPassport,
   CompetencyRating,
+  CredentialType,
   ProficiencyLevel,
+  Specialization,
 } from "./passport";
 import { fipFramework, type CompetencyArea, type CompetencyCluster } from "./competency-framework";
 
@@ -26,6 +28,23 @@ export function fullNameTh(p: ProfessionalPassport): string {
 
 export function fullNameEn(p: ProfessionalPassport): string {
   return `${p.identity.firstNameEn} ${p.identity.lastNameEn}`;
+}
+
+const credentialTypeOrder: Record<CredentialType, number> = {
+  diploma: 0,
+  approval_certificate: 1,
+  board_certificate: 2,
+  in_training: 3,
+};
+
+export function specializationsForDisplay(
+  p: ProfessionalPassport,
+  verifiedOnly = false,
+): Specialization[] {
+  return p.specializations
+    .filter((specialization) => !verifiedOnly || specialization.verification.status === "verified")
+    .slice()
+    .sort((left, right) => credentialTypeOrder[left.type] - credentialTypeOrder[right.type]);
 }
 
 export function ageFromDob(dob: string): number {

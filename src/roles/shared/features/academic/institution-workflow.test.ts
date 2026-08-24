@@ -145,22 +145,22 @@ describe("Institution academic workflow", () => {
       id: "change-test",
       courseOfferingId: "offering-bcp-101",
       reviewerTeacherId: teacherActor.userId,
-      proposedChanges: { section: "SIR-02" },
-      reason: "ขอเพิ่มกลุ่มเรียน",
+      proposedChanges: { term: "2/2569" },
+      reason: "ขอปรับภาคการศึกษา",
       actor: institutionActor,
       at: "2026-08-18T00:00:00.000Z",
     });
     const needsRevision = reviewCourseOfferingChangeRequest({
       request: submitted,
       decision: "needs_revision",
-      reason: "กรุณาเพิ่มเหตุผลด้านจำนวนผู้เรียน",
+      reason: "กรุณาระบุแผนการเปิดรายวิชาในภาคการศึกษาใหม่",
       actor: teacherActor,
       at: "2026-08-18T01:00:00.000Z",
     });
     const resubmitted = resubmitCourseOfferingChangeRequest({
       request: needsRevision,
-      proposedChanges: { section: "SIR-03" },
-      reason: "เพิ่มข้อมูลจำนวนผู้เรียนแล้ว",
+      proposedChanges: { term: "3/2569" },
+      reason: "เพิ่มรายละเอียดแผนการเปิดรายวิชาแล้ว",
       actor: institutionActor,
       at: "2026-08-18T02:00:00.000Z",
     });
@@ -176,7 +176,7 @@ describe("Institution academic workflow", () => {
     expect(needsRevision.status).toBe("needs_revision");
     expect(resubmitted).toMatchObject({
       status: "pending_teacher_review",
-      proposedChanges: { section: "SIR-03" },
+      proposedChanges: { term: "3/2569" },
     });
     expect(approved.status).toBe("approved");
     expect(approved.history.map((entry) => entry.action)).toEqual([

@@ -6,6 +6,7 @@ import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { registrationData, studentDetailData } from "@/roles/shared/data";
+import { formatCourseCode } from "@/roles/shared/data/college-directory";
 import {
   getCurrentPassportSync,
   fullNameTh,
@@ -18,6 +19,7 @@ import {
   daysUntilLicenseExpiry,
   verifyUrl,
   proficiencyLabels,
+  specializationsForDisplay,
   licenseStatusLabels,
   credentialTypeLabels,
   verificationLabels,
@@ -96,6 +98,7 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
 export default function PassportPage() {
   const p = getCurrentPassportSync();
   const clusters = competenciesByCluster(p);
+  const specializations = specializationsForDisplay(p);
   const [origin, setOrigin] = useState("");
 
   // อ่าน origin หลัง mount เพื่อประกอบลิงก์/QR ตรวจสอบแบบ absolute (client-only)
@@ -263,9 +266,9 @@ export default function PassportPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* C. Specializations */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <SectionHeader label="ความเชี่ยวชาญเฉพาะทาง" icon="workspace_premium" sub="วุฒิบัตร / หนังสืออนุมัติ" />
+          <SectionHeader label="ความเชี่ยวชาญเฉพาะทาง" icon="workspace_premium" sub="ประกาศนียบัตร → หนังสืออนุมัติ → วุฒิบัตร" />
           <div className="space-y-3">
-            {p.specializations.map((s) => (
+            {specializations.map((s) => (
               <div key={s.id} className="rounded-lg border border-border p-4">
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                   <span className="rounded-md bg-primary/10 px-2 py-0.5 text-2xs font-semibold text-primary">{credentialTypeLabels[s.type]}</span>
@@ -355,14 +358,14 @@ export default function PassportPage() {
           <Field label="หน่วยกิตสะสมทั้งหมด" value={`${studentDetailData.creditsEarned} จาก ${studentDetailData.creditsTotal} หน่วยกิต`} />
         </div>
         <div className="mt-5 overflow-x-auto rounded-lg border border-border">
-          <table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3 font-medium">รหัสวิชา</th><th className="px-4 py-3 font-medium">รายวิชา</th><th className="px-4 py-3 font-medium">เวลาเรียน</th><th className="px-4 py-3 font-medium">สถานะ</th></tr></thead><tbody className="divide-y">{registrationData.courses.map((course) => <tr key={course.code}><td className="px-4 py-3 font-mono text-xs">{course.code}</td><td className="px-4 py-3 font-medium">{course.title}</td><td className="px-4 py-3 text-muted-foreground">{course.schedule}</td><td className="px-4 py-3"><Badge variant="success">ลงทะเบียนแล้ว</Badge></td></tr>)}</tbody></table>
+          <table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3 font-medium">รหัสวิชา</th><th className="px-4 py-3 font-medium">รายวิชา</th><th className="px-4 py-3 font-medium">เวลาเรียน</th><th className="px-4 py-3 font-medium">สถานะ</th></tr></thead><tbody className="divide-y">{registrationData.courses.map((course) => <tr key={course.code}><td className="px-4 py-3 font-mono text-xs">{formatCourseCode(course.code)}</td><td className="px-4 py-3 font-medium">{course.title}</td><td className="px-4 py-3 text-muted-foreground">{course.schedule}</td><td className="px-4 py-3"><Badge variant="success">ลงทะเบียนแล้ว</Badge></td></tr>)}</tbody></table>
         </div>
       </div>
 
       {/* Footer note */}
       <p className="flex items-center justify-center gap-1.5 text-center text-2xs text-muted-foreground">
         <span className="material-symbols-outlined text-sm">shield</span>
-        ประวัติวิชาชีพจัดทำโดย{p.issuingAuthority.nameTh} · ปรับปรุงล่าสุด {formatThaiDate(p.updatedAt)}
+        Pharmacist Profile จัดทำโดย{p.issuingAuthority.nameTh} · ปรับปรุงล่าสุด {formatThaiDate(p.updatedAt)}
       </p>
 
     </PageShell>

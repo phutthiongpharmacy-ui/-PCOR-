@@ -6,6 +6,10 @@ import type {
   AcademicInstitution,
   CourseOffering,
 } from "@/roles/shared/features/academic/model";
+import {
+  getUniversityNameForInstitution,
+} from "@/roles/shared/data/university-directory";
+import { formatCollegeCourseCode } from "@/roles/shared/data/college-directory";
 
 type NormalCourseDefinition = Extract<CourseDefinition, { kind: "course" }>;
 
@@ -18,6 +22,7 @@ export type OpenRegistrationCourse = {
   definition: NormalCourseDefinition;
   offering: CourseOffering;
   institutionName: string;
+  universityName: string;
   academicYear: string;
   term: string;
   schedule: string;
@@ -27,14 +32,14 @@ export type OpenRegistrationCourse = {
 export type OpenRegistrationFilters = {
   query?: string;
   college?: string;
-  section?: string;
+  university?: string;
   academicYear?: string;
   term?: string;
 };
 
 export type OpenRegistrationFilterOptions = {
   colleges: string[];
-  sections: string[];
+  universities: string[];
   academicYears: string[];
   terms: string[];
 };
@@ -102,12 +107,14 @@ export function buildOpenRegistrationCourses(
     const presentation = OPEN_REGISTRATION_PRESENTATION_DETAILS[offering.id];
     const definition = activeNormalCourseByCode.get(offering.courseCode);
     const institution = institutionById.get(offering.institutionId);
+    const universityName = getUniversityNameForInstitution(offering.institutionId) ?? institution?.name;
     const academicTerm = parseAcademicTerm(offering.term);
 
     if (
       offering.status !== "open"
       || !definition
       || !institution
+      || !universityName
       || !academicTerm
     ) {
       return [];
@@ -117,6 +124,7 @@ export function buildOpenRegistrationCourses(
       definition,
       offering,
       institutionName: institution.name,
+      universityName,
       academicYear: academicTerm.academicYear,
       term: academicTerm.term,
       schedule: presentation?.schedule ?? "สถาบันจะแจ้งวันและเวลา",
@@ -139,13 +147,14 @@ export function filterOpenRegistrationCourses(
   return courses.filter((course) => {
     const matchesQuery = !query || [
       course.definition.code,
+      formatCollegeCourseCode(course.definition.code, course.definition.collegeCode),
       course.definition.titleTh,
       course.definition.titleEn,
     ].some((value) => value.toLocaleLowerCase("th-TH").includes(query));
 
     return matchesQuery
       && matchesSelectFilter(course.definition.collegeCode, filters.college)
-      && matchesSelectFilter(course.offering.section, filters.section)
+      && matchesSelectFilter(course.universityName, filters.university)
       && matchesSelectFilter(course.academicYear, filters.academicYear)
       && matchesSelectFilter(course.term, filters.term);
   });
@@ -162,7 +171,7 @@ export function openRegistrationFilterOptions(
 ): OpenRegistrationFilterOptions {
   return {
     colleges: uniqueSorted(courses.map((course) => course.definition.collegeCode)),
-    sections: uniqueSorted(courses.map((course) => course.offering.section)),
+    universities: uniqueSorted(courses.map((course) => course.universityName)),
     academicYears: uniqueSorted(courses.map((course) => course.academicYear)),
     terms: uniqueSorted(courses.map((course) => course.term)),
   };

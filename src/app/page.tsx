@@ -62,7 +62,7 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold mb-4 leading-tight">
               ราชวิทยาลัยเภสัชกรรม<br />แห่งประเทศไทย
             </h1>
-            <p className="text-lg text-content-on-image/80 font-medium">ระบบบริการสมาชิกวิชาชีพ</p>
+            <p className="text-lg text-content-on-image/80 font-medium">ระบบบริการสมาชิกวิชาชีพ PCOR</p>
           </motion.div>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <p className="text-2xs font-semibold uppercase tracking-wider text-primary mb-1">ระบบบริการสมาชิกราชวิทยาลัย</p>
+            <p className="text-2xs font-semibold uppercase tracking-wider text-primary mb-1">ระบบบริการสมาชิกวิชาชีพ PCOR</p>
             <h2 className="text-2xl font-bold text-foreground mb-2">เข้าสู่ระบบ</h2>
             <p className="text-sm text-muted-foreground">เข้าสู่ระบบเพื่อใช้บริการข้อมูลวิชาชีพของคุณ</p>
           </div>

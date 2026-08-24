@@ -360,7 +360,7 @@ export default function ExamApplicationPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-base">info</span>
-                ระบบจะดึงประวัติวิชาชีพที่ลงทะเบียนไว้มาใช้โดยอัตโนมัติ
+                ระบบจะดึงข้อมูลจาก Pharmacist Profile มาใช้โดยอัตโนมัติ
               </p>
               <Button
                 className="gap-1.5 shrink-0"
@@ -766,7 +766,7 @@ export default function ExamApplicationPage() {
                 <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
                   <span className="material-symbols-outlined text-primary mt-0.5">auto_awesome</span>
                   <div>
-                    <h4 className="font-semibold text-primary text-sm">ดึงประวัติวิชาชีพอัตโนมัติสำเร็จ</h4>
+                    <h4 className="font-semibold text-primary text-sm">ดึงข้อมูลจาก Pharmacist Profile สำเร็จ</h4>
                     <p className="text-xs text-muted-foreground mt-1">
                       ระบบดึงประวัติของคุณมาใช้ประกอบการสมัครสอบแล้ว กรุณาตรวจสอบความถูกต้องก่อนไปขั้นตอนถัดไป
                     </p>

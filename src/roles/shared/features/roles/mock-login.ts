@@ -1,4 +1,5 @@
 import {
+  COLLEGE_ORGANISATIONS,
   ORGANISATION_LIST,
   ORGANISATIONS,
   ROLE_PRESENTATION,
@@ -245,11 +246,9 @@ function defaultOrganisation(role: SystemRole, collegeCode?: string): Organisati
   if (role === "super_admin") return ORGANISATIONS.system;
   if (role === "royal_college_staff") return ORGANISATIONS.royalCollege;
   if (role === "president") {
-    return collegeCode === ORGANISATIONS.royalCollege.code
-      ? ORGANISATIONS.royalCollege
-      : collegeCode === ORGANISATIONS.communityCollege.code
-        ? ORGANISATIONS.communityCollege
-        : ORGANISATIONS.therapeuticCollege;
+    if (collegeCode === ORGANISATIONS.royalCollege.code) return ORGANISATIONS.royalCollege;
+    return COLLEGE_ORGANISATIONS.find((organisation) => organisation.code === collegeCode)
+      ?? ORGANISATIONS.therapeuticCollege;
   }
   return ORGANISATIONS.siriraj;
 }

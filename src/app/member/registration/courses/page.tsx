@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { colleges, registrationData } from "@/roles/shared/data";
+import { registrationData } from "@/roles/shared/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { useMockDb } from "@/providers/mock-db-provider";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { EmptyState, LoadingState } from "@/roles/shared/components/workspace/WorkspacePrimitives";
+import { COLLEGE_OPTIONS, formatCollegeCourseCode, formatCourseCode } from "@/roles/shared/data/college-directory";
+import { UNIVERSITY_OPTIONS } from "@/roles/shared/data/university-directory";
 import { currentMemberPassport } from "@/roles/shared/member/domain/member";
 import { findLicenseRegistryRecord, getLicenseEligibility } from "@/roles/shared/features/license-eligibility";
 import { registrationStatusMeta, type RegistrationRecord, type RegistrationStatus } from "@/roles/shared/features/registration";
@@ -29,7 +31,7 @@ type CourseViewStatus = RegistrationStatus | "available" | "full";
 const defaultFilters: Required<OpenRegistrationFilters> = {
   query: "",
   college: "all",
-  section: "all",
+  university: "all",
   academicYear: "all",
   term: "all",
 };
@@ -92,9 +94,10 @@ export default function CourseRegistrationPage() {
     [academicInstitutions, courseOfferings],
   );
   const filterOptions = useMemo(() => openRegistrationFilterOptions(openRegistrationCourses), [openRegistrationCourses]);
-  const sectionOptions = useMemo(() => openRegistrationFilterOptions(
-    filterOpenRegistrationCourses(openRegistrationCourses, { college: filters.college }),
-  ).sections, [filters.college, openRegistrationCourses]);
+  const institutionOptions = useMemo(() => [
+    ...UNIVERSITY_OPTIONS,
+    ...filterOptions.universities.filter((institution) => !UNIVERSITY_OPTIONS.some((option) => option === institution)),
+  ], [filterOptions.universities]);
   const displayedCourses = useMemo(
     () => filterOpenRegistrationCourses(openRegistrationCourses, filters),
     [filters, openRegistrationCourses],
@@ -180,11 +183,11 @@ export default function CourseRegistrationPage() {
   };
 
   const updateFilter = (key: keyof Required<OpenRegistrationFilters>, value: string) => {
-    setFilters((previous) => ({ ...previous, [key]: value, ...(key === "college" ? { section: "all" } : {}) }));
+    setFilters((previous) => ({ ...previous, [key]: value }));
   };
 
   const handleDropRequest = (registration: RegistrationRecord) => {
-    if (!window.confirm(`ยืนยันส่งคำขอถอนวิชา ${registration.courseCode}?`)) return;
+    if (!window.confirm(`ยืนยันส่งคำขอถอนวิชา ${formatCourseCode(registration.courseCode)}?`)) return;
     requestRegistrationDrop(registration.id, "ผู้เข้าศึกษาขอถอนผ่านระบบ");
     toast.success("ส่งคำขอถอนแล้ว");
   };
@@ -223,8 +226,8 @@ export default function CourseRegistrationPage() {
             {selectedCourses.map((course) => (
               <div key={course.offering.id} className="flex items-center justify-between gap-3 rounded-xl bg-surface-container-low px-4 py-3">
                 <div className="min-w-0">
-                  <p className="break-words text-sm font-medium">{course.definition.code} · {course.definition.titleTh}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">หมู่ {course.offering.section} · {course.definition.credits} หน่วยกิต · {course.schedule}</p>
+                  <p className="break-words text-sm font-medium">{formatCollegeCourseCode(course.definition.code, course.definition.collegeCode)} · {course.definition.titleTh}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{course.universityName} · {course.definition.credits} หน่วยกิต · {course.schedule}</p>
                 </div>
                 <Button variant="ghost" className="min-h-11 shrink-0 text-destructive" onClick={() => handleRemoveSelection(course.offering.id)}>เอาออก</Button>
               </div>
@@ -250,13 +253,13 @@ export default function CourseRegistrationPage() {
                   <Input id="course-search" type="search" value={filters.query} onChange={(event) => updateFilter("query", event.target.value)} placeholder="รหัสหรือชื่อรายวิชา" className="h-11 rounded-xl pl-10 text-sm" />
                 </div>
               </div>
-              <div><label htmlFor="course-college" className="mb-1.5 block text-sm font-medium">วิทยาลัย</label><select id="course-college" value={filters.college} onChange={(event) => updateFilter("college", event.target.value)} className={filterSelectClassName}><option value="all">ทุกวิทยาลัย</option>{filterOptions.colleges.map((college) => <option key={college} value={college}>{colleges[college as keyof typeof colleges]?.fullName ?? college}</option>)}</select></div>
-              <div><label htmlFor="course-section" className="mb-1.5 block text-sm font-medium">หมู่เรียน</label><select id="course-section" value={filters.section} onChange={(event) => updateFilter("section", event.target.value)} className={filterSelectClassName}><option value="all">ทุกหมู่เรียน</option>{sectionOptions.map((section) => <option key={section} value={section}>{section}</option>)}</select></div>
+              <div><label htmlFor="course-college" className="mb-1.5 block text-sm font-medium">วิทยาลัย</label><select id="course-college" value={filters.college} onChange={(event) => updateFilter("college", event.target.value)} className={filterSelectClassName}><option value="all">ทุกวิทยาลัย</option>{COLLEGE_OPTIONS.map((college) => <option key={college.value} value={college.value}>{college.label}</option>)}</select></div>
+              <div><label htmlFor="course-institution" className="mb-1.5 block text-sm font-medium">สถาบัน</label><select id="course-institution" value={filters.university} onChange={(event) => updateFilter("university", event.target.value)} className={filterSelectClassName}><option value="all">ทุกสถาบัน</option>{institutionOptions.map((institution) => <option key={institution}>{institution}</option>)}</select></div>
               <div><label htmlFor="course-year" className="mb-1.5 block text-sm font-medium">ปีการศึกษา</label><select id="course-year" value={filters.academicYear} onChange={(event) => updateFilter("academicYear", event.target.value)} className={filterSelectClassName}><option value="all">ทุกปีการศึกษา</option>{filterOptions.academicYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></div>
               <div><label htmlFor="course-term" className="mb-1.5 block text-sm font-medium">ภาคการศึกษา</label><select id="course-term" value={filters.term} onChange={(event) => updateFilter("term", event.target.value)} className={filterSelectClassName}><option value="all">ทุกภาคการศึกษา</option>{filterOptions.terms.map((term) => <option key={term} value={term}>ภาคการศึกษาที่ {term}</option>)}</select></div>
             </form>
             <div className="mt-4 flex min-h-11 flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-              <p role="status" aria-live="polite" className="text-sm text-muted-foreground">พบ <strong className="font-semibold tabular-nums text-foreground">{displayedCourses.length}</strong> หมู่เรียน จาก {displayedCourseCount} รายวิชา</p>
+              <p role="status" aria-live="polite" className="text-sm text-muted-foreground">พบ <strong className="font-semibold tabular-nums text-foreground">{displayedCourses.length}</strong> รายการเปิดสอน จาก {displayedCourseCount} รายวิชา</p>
               <Button type="button" variant="ghost" className="min-h-11" onClick={() => setFilters(defaultFilters)} disabled={activeFilterCount === 0}><span aria-hidden="true" className="material-symbols-outlined text-lg">filter_alt_off</span>ล้างตัวกรอง{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}</Button>
             </div>
           </CardContent>
@@ -280,13 +283,13 @@ export default function CourseRegistrationPage() {
                   <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-semibold text-primary">{course.definition.code}</span>
+                        <span className="font-mono text-xs font-semibold text-primary">{formatCollegeCourseCode(course.definition.code, course.definition.collegeCode)}</span>
                         <Badge variant="outline">{course.definition.collegeCode}</Badge>
                         <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                       </div>
                       <h3 className="mt-2 text-base font-semibold leading-6 text-foreground">{course.definition.titleTh}</h3>
                       <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-                        <span>หมู่ <strong className="text-foreground">{course.offering.section}</strong></span>
+                        <span>{course.universityName}</span>
                         <span>{course.definition.credits} หน่วยกิต</span>
                         <span>{course.schedule}</span>
                         <span>ว่าง {Math.max(0, course.definition.capacity - course.definition.enrolled)} / {course.definition.capacity} ที่นั่ง</span>
@@ -319,7 +322,7 @@ export default function CourseRegistrationPage() {
                       </dl>
                       <div className="mt-4 max-w-xl">
                         <div className="flex justify-between gap-3 text-xs"><span>จำนวนรับ {course.definition.capacity} คน</span><span>ลงทะเบียนแล้ว {course.definition.enrolled} คน</span></div>
-                        <Progress value={course.definition.enrolled} max={course.definition.capacity} tone={course.definition.enrolled >= course.definition.capacity ? "warning" : "brand"} className="mt-2" aria-label={`ลงทะเบียนแล้ว ${course.definition.enrolled} จาก ${course.definition.capacity} คน วิชา ${course.definition.code}`} />
+                        <Progress value={course.definition.enrolled} max={course.definition.capacity} tone={course.definition.enrolled >= course.definition.capacity ? "warning" : "brand"} className="mt-2" aria-label={`ลงทะเบียนแล้ว ${course.definition.enrolled} จาก ${course.definition.capacity} คน วิชา ${formatCollegeCourseCode(course.definition.code, course.definition.collegeCode)}`} />
                       </div>
                       {registration?.reviewReason ? <p className="mt-3 text-xs text-danger">หมายเหตุ: {registration.reviewReason}</p> : null}
                       {blockedReason ? <p className="mt-3 text-xs text-muted-foreground">{blockedReason}</p> : null}

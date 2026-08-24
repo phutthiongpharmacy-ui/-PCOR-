@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useMockDb } from "@/providers/mock-db-provider";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { EmptyState, LoadingState } from "@/roles/shared/components/workspace/WorkspacePrimitives";
+import { formatCollegeCourseCode } from "@/roles/shared/data/college-directory";
 import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
 
 const academicYears = ["2569", "2568", "2567", "2566"];
@@ -45,7 +46,7 @@ export default function MemberResultsPage() {
   });
   const normalizedQuery = query.trim().toLocaleLowerCase("th-TH");
   const visibleRows = resultRows.filter(({ offering, termNumber, academicYear: rowAcademicYear }) => {
-    const matchesQuery = !normalizedQuery || `${offering.courseCode} ${offering.courseTitle}`
+    const matchesQuery = !normalizedQuery || `${offering.courseCode} ${formatCollegeCourseCode(offering.courseCode, offering.collegeCode)} ${offering.courseTitle}`
       .toLocaleLowerCase("th-TH")
       .includes(normalizedQuery);
     return rowAcademicYear === academicYear
@@ -98,7 +99,7 @@ export default function MemberResultsPage() {
                       const didNotPass = result.currentValue === "U";
                       return (
                         <TableRow key={result.id}>
-                          <TableCell className="font-mono text-sm font-medium">{offering.courseCode}</TableCell>
+                          <TableCell className="font-mono text-sm font-medium">{formatCollegeCourseCode(offering.courseCode, offering.collegeCode)}</TableCell>
                           <TableCell className="max-w-md whitespace-normal font-medium">{offering.courseTitle}</TableCell>
                           <TableCell>{offering.term}</TableCell>
                           <TableCell className="tabular-nums">{offering.credits}</TableCell>

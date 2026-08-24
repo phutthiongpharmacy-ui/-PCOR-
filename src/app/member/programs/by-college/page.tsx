@@ -7,13 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ProgramSectionNav } from "@/roles/member/features/programs/ProgramSectionNav";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
-import { colleges } from "@/roles/shared/data";
+import { formatCollegeCourseCode, getCollegeOption } from "@/roles/shared/data/college-directory";
 import { groupCoursesByCollege } from "@/roles/shared/features/courses/course-catalog";
 
 export default function ByCollegePage() {
   const [query, setQuery] = useState("");
   const normalized = query.trim().toLocaleLowerCase("th-TH");
-  const groups = groupCoursesByCollege().map((group) => ({ ...group, courses: group.courses.filter((item) => !normalized || `${item.code ?? ""} ${item.titleTh} ${item.titleEn}`.toLocaleLowerCase("th-TH").includes(normalized)) })).filter((group) => group.courses.length > 0);
+  const groups = groupCoursesByCollege().map((group) => ({ ...group, courses: group.courses.filter((item) => !normalized || `${item.code ?? ""} ${formatCollegeCourseCode(item.code, item.collegeCode)} ${item.titleTh} ${item.titleEn}`.toLocaleLowerCase("th-TH").includes(normalized)) })).filter((group) => group.courses.length > 0);
 
   return (
     <PageShell className="space-y-5">
@@ -42,7 +42,7 @@ export default function ByCollegePage() {
           <AccordionItem key={group.collegeCode} value={group.collegeCode} className="rounded-xl border border-border bg-card px-5">
             <AccordionTrigger className="hover:no-underline">
               <span className="min-w-0 text-left">
-                <span className="block font-semibold">{colleges[group.collegeCode].fullName}</span>
+                <span className="block font-semibold">{getCollegeOption(group.collegeCode)?.label}</span>
                 <span className="mt-1 block text-xs text-muted-foreground">{group.courses.length} รายการ</span>
               </span>
             </AccordionTrigger>
@@ -50,7 +50,7 @@ export default function ByCollegePage() {
               <div className="divide-y rounded-lg border border-border">
                 {group.courses.map((item) => (
                   <div key={item.id} className="grid gap-2 p-4 sm:grid-cols-[110px_minmax(0,1fr)_auto] sm:items-center">
-                    <span className="font-mono text-xs text-muted-foreground">{item.code ?? "ไม่มีรหัสวิชา"}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{item.code ? formatCollegeCourseCode(item.code, item.collegeCode) : "ไม่มีรหัสวิชา"}</span>
                     <span>
                       <span className="block font-medium">{item.titleTh}</span>
                       <span className="mt-1 block text-xs text-muted-foreground">{item.titleEn} · {item.duration}</span>

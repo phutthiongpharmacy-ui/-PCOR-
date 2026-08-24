@@ -222,9 +222,9 @@ export const licenseStatusLabels: Record<LicenseStatus, { th: string; tone: "ok"
 };
 
 export const credentialTypeLabels: Record<CredentialType, string> = {
-  board_certificate: "วุฒิบัตร",
-  approval_certificate: "หนังสืออนุมัติ",
   diploma: "ประกาศนียบัตร",
+  approval_certificate: "หนังสืออนุมัติ",
+  board_certificate: "วุฒิบัตร",
   in_training: "กำลังฝึกอบรม",
 };
 

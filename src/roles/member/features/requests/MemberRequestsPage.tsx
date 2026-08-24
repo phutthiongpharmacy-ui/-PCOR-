@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUploadField } from "@/roles/shared/components/forms/FileUploadField";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { registrationData, studentDetailData } from "@/roles/shared/data";
+import { formatCourseCode } from "@/roles/shared/data/college-directory";
 import { formatFileSize } from "@/roles/shared/features/file-metadata";
 import { HandwrittenSignaturePreview } from "@/roles/shared/features/requests/HandwrittenSignature";
 import { selectRequestsForStudentSession } from "@/roles/shared/features/requests/request-access";
@@ -208,7 +209,7 @@ function RequestDetail({ request }: { request: MockRequest }) {
           <div className="space-y-2 rounded-2xl border border-border p-3">
             {request.courses.map((course) => (
               <div key={course.code} className="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-center sm:justify-between">
-                <span className="font-medium text-foreground">{course.code} {course.title}</span>
+                <span className="font-medium text-foreground">{formatCourseCode(course.code)} · {course.title}</span>
                 <span className="text-muted-foreground">{course.credits} หน่วยกิต{course.term ? ` · ${course.term}` : ""}</span>
               </div>
             ))}
@@ -751,7 +752,7 @@ export default function MemberRequestsPage() {
                           className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
                         />
                         <span className="min-w-0">
-                          <span className="block text-xs font-semibold text-foreground">{course.code} {course.title}</span>
+                          <span className="block text-xs font-semibold text-foreground">{formatCourseCode(course.code)} · {course.title}</span>
                           <span className="mt-0.5 block text-xs text-muted-foreground">{course.credits} หน่วยกิต · {course.schedule}</span>
                         </span>
                       </label>
@@ -829,7 +830,7 @@ export default function MemberRequestsPage() {
                       <dd className="mt-1 space-y-1 text-sm font-medium text-foreground">
                         {registrationData.courses
                           .filter((course) => selectedCourseCodes.includes(course.code))
-                          .map((course) => <span key={course.code} className="block">{course.code} {course.title}</span>)}
+                          .map((course) => <span key={course.code} className="block">{formatCourseCode(course.code)} · {course.title}</span>)}
                       </dd>
                     </div>
                   )}

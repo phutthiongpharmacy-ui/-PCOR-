@@ -59,7 +59,7 @@ const adminNotificationsData: typeof notificationsData = [
 
 const memberNavigationTitleMap: Record<string, string> = {
   "/member/dashboard": "ภาพรวม",
-  "/member/students": "ประวัติวิชาชีพ",
+  "/member/students": "Pharmacist Profile",
   "/member/schedule": "ตารางกิจกรรมการฝึกอบรม",
   "/member/registration": "สถานะการลงทะเบียน",
   "/member/registration/courses": "ลงทะเบียนเรียน",
@@ -69,7 +69,7 @@ const memberNavigationTitleMap: Record<string, string> = {
   "/member/requests": "คำร้องของฉัน",
   "/member/research": "ค้นหางานวิจัยและบทความวิชาการ",
   "/member/admission": "ระบบสมัครสอบหนังสืออนุมัติ / วุฒิบัตร",
-  "/member/passport": "ประวัติวิชาชีพ",
+  "/member/passport": "Pharmacist Profile",
   "/member/cpd": "ระบบสะสมหน่วยกิตการศึกษาต่อเนื่อง (CPD)",
   "/member/pathway": "เส้นทางการศึกษา (Learning Pathway)",
   "/member/news": "ข่าวสารและประกาศ",
@@ -105,7 +105,7 @@ const breadcrumbMap: Record<string, { trail: { label: string; href: string }[]; 
   "/member/requests": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "คำร้องของฉัน" },
   "/member/research": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "ฐานข้อมูลงานวิจัย" },
   "/member/admission": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "สมัครสอบออนไลน์" },
-  "/member/passport": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "ประวัติวิชาชีพ" },
+  "/member/passport": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "Pharmacist Profile" },
   "/member/cpd": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "หน่วยกิตการศึกษาต่อเนื่อง" },
   "/member/pathway": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "เส้นทางการศึกษา" },
   "/member/news": { trail: [{ label: "หน้าหลัก", href: "/member/dashboard" }], current: "ข่าวสารและประกาศ" },
@@ -418,7 +418,7 @@ export default function TopNav() {
               ? toast.info(activeProfile.title, { description: activeProfile.description })
               : router.push("/member/passport")}>
               <span aria-hidden="true" className="material-symbols-outlined text-base">person</span>
-              ประวัติวิชาชีพ
+              Pharmacist Profile
             </DropdownMenuItem>
             <DropdownMenuItem className="min-h-11" onSelect={() => router.push(isAdminRoute ? "/admin/settings" : "/member/settings")}>
               <span aria-hidden="true" className="material-symbols-outlined text-base">settings</span>

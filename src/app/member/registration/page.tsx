@@ -9,6 +9,7 @@ import { useMockDb } from "@/providers/mock-db-provider";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { WorkflowStateTimeline } from "@/roles/shared/components/workspace/WorkflowStateTimeline";
 import { EmptyState, LoadingState } from "@/roles/shared/components/workspace/WorkspacePrimitives";
+import { formatCourseCode } from "@/roles/shared/data/college-directory";
 import { registrationStatusMeta } from "@/roles/shared/features/registration";
 import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
 import {
@@ -59,13 +60,14 @@ export default function RegistrationStatusPage() {
               const teacherDecisionEvent = [...registration.history].reverse().find((event) => event.actorRole === "teacher");
               const teacherDecision = registration.teacherDecision;
               const timelineSteps = registrationTimelineSteps(registration, invoice?.status, payment?.status);
+              const displayCourseCode = formatCourseCode(registration.courseCode);
 
               return (
                 <article key={registration.id} className="overflow-hidden rounded-2xl border border-border">
                   <details className="group">
                     <summary className="flex min-h-20 cursor-pointer list-none items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden">
                       <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-foreground">{registration.courseCode} · {registration.courseTitle}</span>
+                        <span className="block text-sm font-semibold text-foreground">{displayCourseCode} · {registration.courseTitle}</span>
                         <span className="mt-1 block text-xs text-muted-foreground">คำขอ {registration.id}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
@@ -74,7 +76,7 @@ export default function RegistrationStatusPage() {
                       </span>
                     </summary>
                     <div className="border-t border-border px-4 pb-4">
-                      <WorkflowStateTimeline steps={timelineSteps} label={`สถานะการลงทะเบียน ${registration.courseCode}`} className="mt-4" />
+                      <WorkflowStateTimeline steps={timelineSteps} label={`สถานะการลงทะเบียน ${displayCourseCode}`} className="mt-4" />
                       {registration.status === "drop_pending" ? (
                         <div role="note" className="mt-2 flex items-start gap-2 rounded-lg border border-neutral-border bg-neutral-soft px-3 py-2 text-xs text-neutral-on-soft">
                           <span aria-hidden="true" className="material-symbols-outlined text-base">schedule</span>

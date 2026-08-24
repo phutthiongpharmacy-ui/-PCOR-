@@ -12,6 +12,7 @@ import {
   type ResearchSubmissionStatus,
 } from "@/roles/shared/features/research/types";
 import type { FileMetadata } from "@/roles/shared/features/file-metadata";
+import { isCollegeCode } from "@/roles/shared/data/college-directory";
 import { currentMemberPassport } from "@/roles/shared/member/domain/member";
 import {
   createEligibilityCheckedRegistration,
@@ -1049,13 +1050,35 @@ function isTeacherAffiliationRecord(value: unknown): value is TeacherAffiliation
   return isAcademicAffiliationRecord(value, "teacherId");
 }
 
-function isCourseOfferingRecord(value: unknown): value is CourseOffering {
-  if (!isStringRecord(value)) return false;
-  return isNonEmptyString(value.id) && isNonEmptyString(value.courseCode) &&
-    isNonEmptyString(value.courseTitle) && typeof value.credits === "number" &&
-    isNonEmptyString(value.term) && isNonEmptyString(value.section) &&
-    isNonEmptyString(value.institutionId) && isNonEmptyString(value.collegeCode) &&
-    (value.status === "open" || value.status === "closed");
+function normalizeCourseOfferingRecord(value: unknown): CourseOffering | null {
+  if (!isStringRecord(value) || !isNonEmptyString(value.id) ||
+    !isNonEmptyString(value.courseCode) || !isNonEmptyString(value.courseTitle) ||
+    typeof value.credits !== "number" || !Number.isFinite(value.credits) ||
+    !isNonEmptyString(value.term) || !isNonEmptyString(value.institutionId) ||
+    !isCollegeCode(value.collegeCode) ||
+    (value.status !== "open" && value.status !== "closed")) return null;
+
+  return {
+    id: value.id,
+    courseCode: value.courseCode,
+    courseTitle: value.courseTitle,
+    credits: value.credits,
+    term: value.term,
+    institutionId: value.institutionId,
+    collegeCode: value.collegeCode,
+    status: value.status,
+  };
+}
+
+export function normalizeCourseOfferings(value: unknown) {
+  const stored = Array.isArray(value)
+    ? value.map(normalizeCourseOfferingRecord).filter((item): item is CourseOffering => Boolean(item))
+    : [];
+  const ids = new Set(stored.map((item) => item.id));
+  return [
+    ...stored,
+    ...DEFAULT_COURSE_OFFERINGS.filter((item) => !ids.has(item.id)).map(cloneRecord),
+  ];
 }
 
 function isTeachingAssignmentStatus(value: unknown): value is TeachingAssignment["status"] {
@@ -1169,16 +1192,43 @@ function isCourseProposalActorRecord(value: unknown): value is CourseProposalAct
     resourceScopes.every((scope: unknown) => typeof scope === "string");
 }
 
-function isCourseOfferingEditablePatchRecord(value: unknown): value is CourseOfferingEditablePatch {
-  if (!isStringRecord(value)) return false;
+function normalizeCourseOfferingEditablePatchRecord(
+  value: unknown,
+): CourseOfferingEditablePatch | null {
+  if (!isStringRecord(value)) return null;
   const keys = Object.keys(value);
   if (keys.length === 0 || keys.some((key) => !["courseTitle", "credits", "term", "section"].includes(key))) {
-    return false;
+    return null;
   }
-  return (value.courseTitle === undefined || isNonEmptyString(value.courseTitle)) &&
-    (value.credits === undefined || (typeof value.credits === "number" && Number.isFinite(value.credits) && value.credits > 0)) &&
-    (value.term === undefined || isNonEmptyString(value.term)) &&
-    (value.section === undefined || isNonEmptyString(value.section));
+  const normalized: CourseOfferingEditablePatch = {};
+  if (value.courseTitle !== undefined) {
+    if (!isNonEmptyString(value.courseTitle)) return null;
+    normalized.courseTitle = value.courseTitle;
+  }
+  if (value.credits !== undefined) {
+    if (typeof value.credits !== "number" || !Number.isFinite(value.credits) || value.credits <= 0) {
+      return null;
+    }
+    normalized.credits = value.credits;
+  }
+  if (value.term !== undefined) {
+    if (!isNonEmptyString(value.term)) return null;
+    normalized.term = value.term;
+  }
+  return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
+const LEGACY_SECTION_REQUEST_MIGRATION_REASON = "ระบบยุติคำขอเดิมเนื่องจากปรับโครงสร้างรายการเปิดสอน";
+
+function isLegacySectionOnlyPatch(value: unknown) {
+  return isStringRecord(value) && Object.keys(value).length > 0 &&
+    Object.keys(value).every((key) => key === "section");
+}
+
+function isMigratedSectionRequest(value: Record<string, unknown>) {
+  return isStringRecord(value.proposedChanges) && Object.keys(value.proposedChanges).length === 0 &&
+    value.status === "rejected" && Array.isArray(value.history) &&
+    value.history.some((entry: unknown) => isStringRecord(entry) && entry.reason === LEGACY_SECTION_REQUEST_MIGRATION_REASON);
 }
 
 function isCourseOfferingChangeStatus(value: unknown): value is CourseOfferingChangeRequest["status"] {
@@ -1197,8 +1247,14 @@ function isCourseOfferingChangeHistoryRecord(
     isNonEmptyString(value.occurredAt) && isNonEmptyString(value.reason);
 }
 
-function isCourseOfferingChangeRequestRecord(value: unknown): value is CourseOfferingChangeRequest {
-  if (!isStringRecord(value)) return false;
+function normalizeCourseOfferingChangeRequestRecord(
+  value: unknown,
+): CourseOfferingChangeRequest | null {
+  if (!isStringRecord(value)) return null;
+  const legacySectionOnly = isLegacySectionOnlyPatch(value.proposedChanges);
+  const migratedSectionRequest = isMigratedSectionRequest(value);
+  const proposedChanges = normalizeCourseOfferingEditablePatchRecord(value.proposedChanges)
+    ?? ((legacySectionOnly || migratedSectionRequest) ? {} : null);
   const latestReview = value.latestReview;
   const validReview = latestReview === undefined || (
     isStringRecord(latestReview) &&
@@ -1206,21 +1262,72 @@ function isCourseOfferingChangeRequestRecord(value: unknown): value is CourseOff
     isNonEmptyString(latestReview.reason) && isCourseProposalActorRecord(latestReview.actor) &&
     isNonEmptyString(latestReview.reviewedAt)
   );
-  return isNonEmptyString(value.id) && isNonEmptyString(value.courseOfferingId) &&
-    isNonEmptyString(value.institutionId) && isNonEmptyString(value.reviewerTeacherId) &&
-    isCourseOfferingEditablePatchRecord(value.proposedChanges) && isNonEmptyString(value.reason) &&
-    isCourseOfferingChangeStatus(value.status) && isCourseProposalActorRecord(value.requestedBy) &&
-    isNonEmptyString(value.requestedAt) && isNonEmptyString(value.updatedAt) && validReview &&
-    Array.isArray(value.history) && value.history.length > 0 &&
-    value.history.every(isCourseOfferingChangeHistoryRecord);
+  if (!proposedChanges || !isNonEmptyString(value.id) ||
+    !isNonEmptyString(value.courseOfferingId) || !isNonEmptyString(value.institutionId) ||
+    !isNonEmptyString(value.reviewerTeacherId) || !isNonEmptyString(value.reason) ||
+    !isCourseOfferingChangeStatus(value.status) || !isCourseProposalActorRecord(value.requestedBy) ||
+    !isNonEmptyString(value.requestedAt) || !isNonEmptyString(value.updatedAt) || !validReview ||
+    !Array.isArray(value.history) || value.history.length === 0 ||
+    !value.history.every(isCourseOfferingChangeHistoryRecord)) return null;
+
+  const normalized = {
+    id: value.id,
+    courseOfferingId: value.courseOfferingId,
+    institutionId: value.institutionId,
+    reviewerTeacherId: value.reviewerTeacherId,
+    proposedChanges,
+    reason: value.reason,
+    status: value.status,
+    requestedBy: cloneRecord(value.requestedBy),
+    requestedAt: value.requestedAt,
+    updatedAt: value.updatedAt,
+    ...(latestReview === undefined ? {} : {
+      latestReview: cloneRecord(latestReview) as unknown as NonNullable<CourseOfferingChangeRequest["latestReview"]>,
+    }),
+    history: cloneRecord(value.history) as CourseOfferingChangeRequest["history"],
+  };
+  if (!legacySectionOnly) return normalized;
+
+  const actor = cloneRecord(value.requestedBy) as CourseOfferingChangeRequest["requestedBy"];
+  const migrationHistory: CourseOfferingChangeRequest["history"][number] = {
+    id: `${value.id}-section-removed`,
+    action: "reviewed",
+    ...(value.status === "rejected" ? {} : { fromStatus: value.status }),
+    toStatus: "rejected",
+    actor,
+    occurredAt: value.updatedAt,
+    reason: LEGACY_SECTION_REQUEST_MIGRATION_REASON,
+  };
+  return {
+    ...normalized,
+    proposedChanges: {},
+    status: "rejected",
+    updatedAt: value.updatedAt,
+    latestReview: {
+      decision: "rejected",
+      reason: LEGACY_SECTION_REQUEST_MIGRATION_REASON,
+      actor,
+      reviewedAt: value.updatedAt,
+    },
+    history: [...normalized.history, migrationHistory],
+  };
 }
 
 export function normalizeCourseOfferingChangeRequests(value: unknown) {
-  return mergeAcademicRecords(
-    value,
-    DEFAULT_COURSE_OFFERING_CHANGE_REQUESTS,
-    isCourseOfferingChangeRequestRecord,
-  );
+  const raw = Array.isArray(value) ? value : [];
+  const rawIds = new Set(raw.flatMap((item) => (
+    isStringRecord(item) && isNonEmptyString(item.id) ? [item.id] : []
+  )));
+  const stored = raw
+    .map(normalizeCourseOfferingChangeRequestRecord)
+    .filter((item): item is CourseOfferingChangeRequest => Boolean(item));
+  const storedIds = new Set(stored.map((item) => item.id));
+  return [
+    ...stored,
+    ...DEFAULT_COURSE_OFFERING_CHANGE_REQUESTS
+      .filter((item) => !storedIds.has(item.id) && !rawIds.has(item.id))
+      .map(cloneRecord),
+  ];
 }
 
 function isCourseProposalHistoryRecord(
@@ -1595,10 +1702,8 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
       DEFAULT_TEACHER_AFFILIATIONS,
       isTeacherAffiliationRecord,
     );
-    const normalizedCourseOfferings = mergeAcademicRecords(
+    const normalizedCourseOfferings = normalizeCourseOfferings(
       p(s("mock_course_offerings"), DEFAULT_COURSE_OFFERINGS),
-      DEFAULT_COURSE_OFFERINGS,
-      isCourseOfferingRecord,
     );
     const normalizedTeachingAssignments = normalizeTeachingAssignments(
       p(s("mock_teaching_assignments"), DEFAULT_TEACHING_ASSIGNMENTS),
@@ -1679,7 +1784,7 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("mock_examRequests", JSON.stringify(examRequests));
     localStorage.setItem("mock_certificates", JSON.stringify(certificates));
     localStorage.setItem("mock_settings", JSON.stringify(settings));
-    localStorage.setItem("mock_db_schema_version", "6");
+    localStorage.setItem("mock_db_schema_version", "7");
   }, [academicInstitutions, academicStudents, academicTeachers, admissions, certificates, courseOfferingChangeRequests, courseOfferings, courseProposals, courseRequests, examRequests, isLoaded, payments, programs, registrationInvoices, registrations, researchSubmissions, settings, studentAffiliations, subjectResults, teacherAffiliations, teachingAssignments]);
 
   const updateAdmissionStatus = (id: string, status: Status) => setAdmissions((previous) => previous.map((admission) => {
@@ -2384,7 +2489,7 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
       action: "course_offering.update",
       resourceType: "course_offering",
       resourceId: offering.id,
-      resourceLabel: `${offering.courseCode} · กลุ่ม ${offering.section}`,
+      resourceLabel: offering.courseCode,
       resourceOrganisationId: offering.institutionId,
       before: offering,
       after: updated,

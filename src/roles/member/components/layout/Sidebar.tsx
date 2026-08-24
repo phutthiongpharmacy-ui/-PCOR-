@@ -21,7 +21,7 @@ const navGroups: {
     groupLabel: "เมนูหลัก",
     items: [
       { href: "/member/dashboard", icon: "dashboard", label: "ภาพรวม" },
-      { href: "/member/passport", icon: "badge", label: "ประวัติวิชาชีพ" },
+      { href: "/member/passport", icon: "badge", label: "Pharmacist Profile" },
     ],
   },
   {
@@ -58,23 +58,20 @@ function SidebarNav({ pathname, onNavigate, reserveCloseSpace = false }: { pathn
         onClick={onNavigate}
         className={cn("block px-5 pb-4 pt-5", reserveCloseSpace && "pr-16")}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-logo-surface p-1 overflow-hidden flex-shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-logo-surface p-1.5 flex-shrink-0">
             <OrganizationLogo className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold leading-snug text-sidebar-foreground">
-              <span className="block">ระบบสารสนเทศ</span>
-              <span className="block">ราชวิทยาลัยแห่งประเทศไทย</span>
-            </p>
-            <p className="mt-1 break-words text-3xs leading-snug text-sidebar-foreground">
-              The Information System of the Royal College of Thailand
+            <p className="text-xl font-bold leading-none tracking-wide text-sidebar-foreground">PCOR</p>
+            <p className="mt-2 break-words text-xs leading-snug text-sidebar-foreground">
+              Pharmacy College Online Registry
             </p>
           </div>
         </div>
       </Link>
 
-      <div className="mx-4 h-px bg-sidebar-border" />
+      <div className="mx-5 shrink-0 border-t border-sidebar-border" />
 
       {/* Navigation */}
       <nav aria-label="เมนูสมาชิก" className="custom-scrollbar flex-1 space-y-4 overflow-y-auto px-3 py-3">
@@ -95,7 +92,7 @@ function SidebarNav({ pathname, onNavigate, reserveCloseSpace = false }: { pathn
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                      "group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors duration-150",
                       active
                         ? "bg-sidebar-primary/10 text-sidebar-primary"
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"

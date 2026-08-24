@@ -45,7 +45,6 @@ const courseFieldCopy = {
   courseTitle: "ชื่อรายวิชา",
   credits: "หน่วยกิต",
   term: "ภาคการศึกษา",
-  section: "กลุ่มเรียน",
 } as const;
 
 function formatDate(value?: string) {
@@ -249,9 +248,9 @@ export default function TeacherCourseHandoffPanels({ actor }: TeacherCourseHando
                   ) : (
                     <>
                       <div>
-                        <dt className="text-xs text-muted-foreground">ภาคการศึกษาและกลุ่มเรียน</dt>
+                        <dt className="text-xs text-muted-foreground">ภาคการศึกษา</dt>
                         <dd className="mt-1 font-medium text-foreground">
-                          {proposedOffering?.term ?? "—"} · {proposedOffering?.section ?? "—"}
+                          {proposedOffering?.term ?? "—"}
                         </dd>
                       </div>
                       <div>

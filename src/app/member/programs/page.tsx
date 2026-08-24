@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { COLLEGE_OPTIONS, type CollegeCode } from "@/roles/shared/data/college-directory";
 import { ProgramSectionNav } from "@/roles/member/features/programs/ProgramSectionNav";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 
@@ -14,13 +15,13 @@ const PAGE_SIZE = 3;
 
 export default function ProgramsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [collegeFilter, setCollegeFilter] = useState("ทุกวิทยาลัย");
+  const [collegeFilter, setCollegeFilter] = useState<"all" | CollegeCode>("all");
   const [page, setPage] = useState(1);
 
   // Filter
   const filtered = programsData.filter((p) => {
     const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchCollege = collegeFilter === "ทุกวิทยาลัย" || p.college === collegeFilter;
+    const matchCollege = collegeFilter === "all" || p.college === collegeFilter;
     return matchSearch && matchCollege;
   });
 
@@ -57,15 +58,16 @@ export default function ProgramsPage() {
                 id="program-college"
                 className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
                 value={collegeFilter}
-                onChange={(e) => { setCollegeFilter(e.target.value); setPage(1); }}
+                onChange={(e) => { setCollegeFilter(e.target.value as "all" | CollegeCode); setPage(1); }}
               >
-                <option>ทุกวิทยาลัย</option><option>วคบท.</option><option>CPAT</option><option>วภช.</option><option>สมุนไพร</option><option>วภท.</option>
+                <option value="all">ทุกวิทยาลัย</option>
+                {COLLEGE_OPTIONS.map((college) => <option key={college.value} value={college.value}>{college.label}</option>)}
               </select>
             </div>
           </form>
           <div className="mt-4 flex min-h-11 flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
-              {searchQuery || collegeFilter !== "ทุกวิทยาลัย"
+              {searchQuery || collegeFilter !== "all"
                 ? <>พบ <strong className="font-semibold tabular-nums text-foreground">{filtered.length}</strong> หลักสูตร จากทั้งหมด {programsData.length}</>
                 : <>พบ <strong className="font-semibold tabular-nums text-foreground">{programsData.length}</strong> หลักสูตร</>}
             </p>
@@ -73,8 +75,8 @@ export default function ProgramsPage() {
               type="button"
               variant="ghost"
               className="min-h-11"
-              disabled={!searchQuery && collegeFilter === "ทุกวิทยาลัย"}
-              onClick={() => { setSearchQuery(""); setCollegeFilter("ทุกวิทยาลัย"); setPage(1); }}
+              disabled={!searchQuery && collegeFilter === "all"}
+              onClick={() => { setSearchQuery(""); setCollegeFilter("all"); setPage(1); }}
             >
               <span aria-hidden="true" className="material-symbols-outlined text-lg">filter_alt_off</span>
               ล้างตัวกรอง
@@ -97,7 +99,7 @@ export default function ProgramsPage() {
                   <div className="flex items-center gap-1.5 mb-2">
                     <Badge variant="outline" className="text-xs opacity-90 px-1.5 py-0">{p.college}</Badge>
                     <Badge variant={p.status === "active" ? "default" : "secondary"} className="text-xs opacity-90 px-1.5 py-0">
-                      {p.status === "active" ? "เปิดรับสมัคร" : "กำลังดำเนินการ"}
+                      {p.status === "active" ? "สมัครสอบประเมินผล" : "กำลังดำเนินการ"}
                     </Badge>
                   </div>
                   <h3 className="text-sm font-semibold mb-1.5 line-clamp-2">{p.title}</h3>

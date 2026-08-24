@@ -44,10 +44,45 @@ export const ORGANISATIONS = {
     kind: "college",
     parentId: "org-royal-college",
   },
+  consumerProtectionCollege: {
+    id: "org-college-cphcp",
+    code: "วคบท.",
+    name: "วิทยาลัยการคุ้มครองผู้บริโภคด้านยาและสุขภาพ",
+    kind: "college",
+    parentId: "org-royal-college",
+  },
+  herbalCollege: {
+    id: "org-college-chpt",
+    code: "สมุนไพร",
+    name: "วิทยาลัยเภสัชกรรมสมุนไพร",
+    kind: "college",
+    parentId: "org-royal-college",
+  },
+  industrialCollege: {
+    id: "org-college-cipt",
+    code: "CIPT",
+    name: "วิทยาลัยเภสัชกรรมอุตสาหการ",
+    kind: "college",
+    parentId: "org-royal-college",
+  },
   communityCollege: {
     id: "org-college-vpc",
     code: "วภช.",
     name: "วิทยาลัยเภสัชกรรมชุมชนแห่งประเทศไทย",
+    kind: "college",
+    parentId: "org-royal-college",
+  },
+  administrationCollege: {
+    id: "org-college-cpat",
+    code: "CPAT",
+    name: "วิทยาลัยการบริหารเภสัชกิจ",
+    kind: "college",
+    parentId: "org-royal-college",
+  },
+  precisionMedicineCollege: {
+    id: "org-college-cppm",
+    code: "CPPM",
+    name: "วิทยาลัยเภสัชพันธุศาสตร์และเภสัชกรรมแม่นยำ",
     kind: "college",
     parentId: "org-royal-college",
   },
@@ -68,6 +103,7 @@ export const ORGANISATIONS = {
 } as const satisfies Record<string, OrganisationScope>;
 
 export const ORGANISATION_LIST: readonly OrganisationScope[] = Object.values(ORGANISATIONS);
+export const COLLEGE_ORGANISATIONS = ORGANISATION_LIST.filter((organisation) => organisation.kind === "college");
 
 export const ROLE_PRESENTATION: Record<SystemRole, { label: string; portal: string; home: string }> = {
   student: { label: "ผู้เข้ารับการฝึกอบรม", portal: "Student Portal", home: "/member/dashboard" },

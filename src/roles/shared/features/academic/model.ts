@@ -1,4 +1,5 @@
 import type { SystemRole } from "@/roles/shared/features/roles/access-model";
+import type { CollegeCode } from "@/roles/shared/data/college-directory";
 
 export type AcademicInstitutionKind = "hospital" | "university";
 
@@ -44,9 +45,8 @@ export interface CourseOffering {
   courseTitle: string;
   credits: number;
   term: string;
-  section: string;
   institutionId: string;
-  collegeCode: string;
+  collegeCode: CollegeCode;
   status: "open" | "closed";
 }
 
@@ -110,7 +110,7 @@ export type CourseOfferingChangeDecision = Exclude<
 >;
 
 export type CourseOfferingEditablePatch = Partial<
-  Pick<CourseOffering, "courseTitle" | "credits" | "term" | "section">
+  Pick<CourseOffering, "courseTitle" | "credits" | "term">
 >;
 
 export type CourseOfferingChangeHistoryAction = "submitted" | "resubmitted" | "reviewed";

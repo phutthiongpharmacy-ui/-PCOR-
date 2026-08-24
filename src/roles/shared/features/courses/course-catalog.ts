@@ -1,4 +1,10 @@
-export type CollegeCode = "วคบท." | "CPAT" | "วภช." | "สมุนไพร" | "วภท.";
+import {
+  COLLEGE_ABBREVIATIONS,
+  COLLEGE_OPTIONS,
+  type CollegeCode,
+} from "@/roles/shared/data/college-directory";
+
+export type { CollegeCode } from "@/roles/shared/data/college-directory";
 export type CourseClassification = "required" | "general";
 
 interface CourseDefinitionBase {
@@ -68,7 +74,7 @@ export const courseCatalog: CourseDefinition[] = [
 ];
 
 export const courseCodeConfiguration = {
-  collegePrefixes: { "วคบท.": "CPC", CPAT: "ADM", "วภช.": "COM", สมุนไพร: "HER", "วภท.": "PTH" },
+  collegePrefixes: COLLEGE_ABBREVIATIONS,
   typePrefixes: { required: "R", general: "G" },
   digits: 3,
 } as const;
@@ -82,5 +88,5 @@ export function allocateCourseCode(collegeCode: CollegeCode, classification: Cou
 }
 
 export function groupCoursesByCollege(courses: readonly CourseDefinition[] = courseCatalog) {
-  return (["วคบท.", "CPAT", "วภช.", "สมุนไพร", "วภท."] as CollegeCode[]).map((collegeCode) => ({ collegeCode, courses: courses.filter((item) => item.collegeCode === collegeCode) }));
+  return COLLEGE_OPTIONS.map(({ value: collegeCode }) => ({ collegeCode, courses: courses.filter((item) => item.collegeCode === collegeCode) }));
 }

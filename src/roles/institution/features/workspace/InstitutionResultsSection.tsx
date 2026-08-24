@@ -150,7 +150,7 @@ export default function InstitutionResultsSection() {
           </div>
           <div className="space-y-1.5">
             <label htmlFor="institution-result-course" className="text-sm font-medium text-foreground">
-              รายวิชา
+              รายการเปิดสอน
             </label>
             <select
               id="institution-result-course"
@@ -158,10 +158,10 @@ export default function InstitutionResultsSection() {
               onChange={(event) => setCourseFilter(event.target.value)}
               className={filterSelectClassName}
             >
-              <option value="all">ทุกรายวิชา</option>
+              <option value="all">ทุกรายการเปิดสอน</option>
               {offerings.map((offering) => (
                 <option key={offering.id} value={offering.id}>
-                  {offering.courseCode} · กลุ่มเรียน {offering.section}
+                  {offering.courseCode} · {offering.courseTitle} · {offering.term}
                 </option>
               ))}
             </select>
@@ -199,7 +199,9 @@ export default function InstitutionResultsSection() {
                     </TableCell>
                     <TableCell>
                       {offering?.courseCode ?? result.courseOfferingId}
-                      <p className="text-xs text-muted-foreground">{offering?.courseTitle ?? "ไม่พบข้อมูลรายวิชา"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {offering ? `${offering.courseTitle} · ${offering.term}` : "ไม่พบข้อมูลรายวิชา"}
+                      </p>
                     </TableCell>
                     <TableCell><Badge variant={meta.variant}>{meta.label}</Badge></TableCell>
                     <TableCell className="text-base font-bold text-foreground">
@@ -222,7 +224,7 @@ export default function InstitutionResultsSection() {
               <EmptyState
                 icon="manage_search"
                 title="ไม่พบผลการเรียน"
-                description="ลองเปลี่ยนคำค้นหา สถานะ ผลการเรียน หรือรายวิชา"
+                description="ลองเปลี่ยนคำค้นหา สถานะ ผลการเรียน หรือรายการเปิดสอน"
               />
             </div>
           ) : null}

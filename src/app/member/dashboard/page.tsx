@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { colleges, dashboardData } from "@/roles/shared/data";
+import { formatCourseCode } from "@/roles/shared/data/college-directory";
 import { useMockDb } from "@/providers/mock-db-provider";
 import { getRegistrationWindowStatus } from "@/roles/shared/features/registration/registration-window";
 
@@ -39,7 +40,7 @@ export default function DashboardPage() {
       <Card className="overflow-hidden"><CardContent className="grid gap-5 p-5 md:grid-cols-[1fr_auto] md:items-center"><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">การลงทะเบียนภาคการศึกษาปัจจุบัน</h2><Badge variant={registration.tone}>{registration.label}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{registration.detail}</p></div><Link href="/member/registration" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">ตรวจสอบการลงทะเบียน<span aria-hidden="true" className="material-symbols-outlined text-base">chevron_right</span></Link></CardContent></Card>
 
       <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
-        <Card><CardHeader><CardTitle className="text-lg">ตารางเรียนที่กำลังจะมาถึง</CardTitle></CardHeader><CardContent className="divide-y p-0">{dashboardData.schedule.map((item) => <div key={item.code} className="grid gap-2 px-5 py-4 sm:grid-cols-[120px_1fr_auto] sm:items-center"><p className="font-medium text-primary">{item.time}</p><div className="min-w-0"><p className="font-medium">{item.course}</p><p className="mt-1 text-xs text-muted-foreground">{item.code}</p></div><p className="text-sm text-muted-foreground">{item.room}</p></div>)}</CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-lg">ตารางเรียนที่กำลังจะมาถึง</CardTitle></CardHeader><CardContent className="divide-y p-0">{dashboardData.schedule.map((item) => <div key={item.code} className="grid gap-2 px-5 py-4 sm:grid-cols-[120px_1fr_auto] sm:items-center"><p className="font-medium text-primary">{item.time}</p><div className="min-w-0"><p className="font-medium">{item.course}</p><p className="mt-1 text-xs text-muted-foreground">{formatCourseCode(item.code)}</p></div><p className="text-sm text-muted-foreground">{item.room}</p></div>)}</CardContent></Card>
         <Card><CardHeader><CardTitle className="text-lg">หน่วยกิตตามหมวด</CardTitle></CardHeader><CardContent className="space-y-3">{dashboardData.creditsBreakdown.map((item) => <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 px-4 py-3"><span className="text-sm">{item.name}</span><strong>{item.value} หน่วยกิต</strong></div>)}</CardContent></Card>
       </div>
     </PageShell>

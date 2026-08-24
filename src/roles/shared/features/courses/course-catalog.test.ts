@@ -9,8 +9,8 @@ describe("course catalog", () => {
   });
 
   it("allocates deterministic codes without colliding with persisted definitions", () => {
-    expect(allocateCourseCode("วภท.", "required")).toBe("PTH-R-001");
-    const existing = ["PTH-R-001"];
-    expect(allocateCourseCode("วภท.", "required", existing)).toBe("PTH-R-002");
+    expect(allocateCourseCode("วภท.", "required")).toBe("CPhT-R-001");
+    const existing = ["CPhT-R-001"];
+    expect(allocateCourseCode("วภท.", "required", existing)).toBe("CPhT-R-002");
   });
 });

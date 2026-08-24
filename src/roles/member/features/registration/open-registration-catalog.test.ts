@@ -33,7 +33,6 @@ const seededOfferings: readonly CourseOffering[] = [
     courseTitle: "ระบาดวิทยาเพื่อการคุ้มครองผู้บริโภค",
     credits: 4,
     term: "1/2569",
-    section: "CHU-01",
     institutionId: "org-inst-chula",
     collegeCode: "วคบท.",
     status: "open",
@@ -44,7 +43,6 @@ const seededOfferings: readonly CourseOffering[] = [
     courseTitle: "การบริหารระบบยาและเภสัชเศรษฐศาสตร์",
     credits: 6,
     term: "2/2569",
-    section: "CHU-02",
     institutionId: "org-inst-chula",
     collegeCode: "CPAT",
     status: "open",
@@ -55,7 +53,6 @@ const seededOfferings: readonly CourseOffering[] = [
     courseTitle: "การบริหารจัดการทางเภสัชกรรมชุมชน",
     credits: 3,
     term: "1/2570",
-    section: "SIR-01",
     institutionId: "org-inst-siriraj",
     collegeCode: "วภช.",
     status: "open",
@@ -66,7 +63,6 @@ const seededOfferings: readonly CourseOffering[] = [
     courseTitle: "การบริหารจัดการผลิตภัณฑ์สมุนไพร",
     credits: 6,
     term: "2/2570",
-    section: "CHU-03",
     institutionId: "org-inst-chula",
     collegeCode: "สมุนไพร",
     status: "open",
@@ -77,7 +73,6 @@ const seededOfferings: readonly CourseOffering[] = [
     courseTitle: "องค์ความรู้ทางเภสัชบำบัดเฉพาะทาง",
     credits: 12,
     term: "1/2569",
-    section: "SIR-02",
     institutionId: "org-inst-siriraj",
     collegeCode: "วภท.",
     status: "open",
@@ -88,7 +83,6 @@ const seededOfferings: readonly CourseOffering[] = [
     courseTitle: "การประเมินผู้ป่วยข้างเตียง",
     credits: 12,
     term: "1/2569",
-    section: "CHU-04",
     institutionId: "org-inst-chula",
     collegeCode: "วภท.",
     status: "open",
@@ -99,7 +93,6 @@ const seededOfferings: readonly CourseOffering[] = [
     courseTitle: "การพัฒนาโครงร่างวิจัยทางคลินิก",
     credits: 12,
     term: "2/2569",
-    section: "CHU-05",
     institutionId: "org-inst-chula",
     collegeCode: "วภท.",
     status: "open",
@@ -129,6 +122,7 @@ describe("open registration catalog", () => {
       },
       offering: { id: "offering-cpc-101" },
       institutionName: "สถาบันฝึกอบรมจุฬาลงกรณ์มหาวิทยาลัย",
+      universityName: "จุฬาลงกรณ์มหาวิทยาลัย",
       academicYear: "2569",
       term: "1",
     });
@@ -144,19 +138,36 @@ describe("open registration catalog", () => {
 
     expect(filterOpenRegistrationCourses(courses, { query: "CPAT-401" }))
       .toHaveLength(1);
+    expect(filterOpenRegistrationCourses(courses, { query: "CPhT 301" }))
+      .toHaveLength(1);
     expect(filterOpenRegistrationCourses(courses, { query: "ระบาดวิทยา" })[0]
       .offering.id).toBe("offering-cpc-101");
     expect(filterOpenRegistrationCourses(courses, { query: "clinical research" })[0]
       .offering.id).toBe("offering-vpt-303");
   });
 
-  it("filters independently by college, section, academic year, and term", () => {
+  it("keeps offerings from institutions without a university mapping", () => {
+    const institution = {
+      id: "org-inst-independent",
+      code: "INST-INDEPENDENT",
+      name: "สถาบันฝึกอบรมอิสระ",
+      kind: "university" as const,
+    };
+    const result = buildOpenRegistrationCourses([
+      { ...seededOfferings[0], institutionId: institution.id },
+    ], [...institutions, institution]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].universityName).toBe(institution.name);
+  });
+
+  it("filters independently by college, university, academic year, and term", () => {
     const courses = buildOpenRegistrationCourses(seededOfferings, institutions);
 
     expect(filterOpenRegistrationCourses(courses, { college: "วภท." }))
       .toHaveLength(3);
-    expect(filterOpenRegistrationCourses(courses, { section: "CHU-03" })[0]
-      .offering.id).toBe("offering-herbal-501");
+    expect(filterOpenRegistrationCourses(courses, { university: "มหาวิทยาลัยมหิดล" }))
+      .toHaveLength(2);
     expect(filterOpenRegistrationCourses(courses, { academicYear: "2570" }))
       .toHaveLength(2);
     expect(filterOpenRegistrationCourses(courses, { term: "2" }))
@@ -164,7 +175,7 @@ describe("open registration catalog", () => {
     expect(filterOpenRegistrationCourses(courses, {
       query: "all",
       college: "all",
-      section: "all",
+      university: "all",
       academicYear: "all",
       term: "all",
     })).toHaveLength(7);
@@ -175,7 +186,7 @@ describe("open registration catalog", () => {
 
     expect(openRegistrationFilterOptions(courses)).toEqual({
       colleges: ["วคบท.", "วภช.", "วภท.", "สมุนไพร", "CPAT"],
-      sections: ["CHU-01", "CHU-02", "CHU-03", "CHU-04", "CHU-05", "SIR-01", "SIR-02"],
+      universities: ["จุฬาลงกรณ์มหาวิทยาลัย", "มหาวิทยาลัยมหิดล"],
       academicYears: ["2569", "2570"],
       terms: ["1", "2"],
     });

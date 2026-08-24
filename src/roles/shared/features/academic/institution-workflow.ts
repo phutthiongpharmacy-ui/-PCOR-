@@ -177,7 +177,6 @@ function validateCourseOfferingPatch(patch: CourseOfferingEditablePatch) {
     normalized.credits = patch.credits;
   }
   if (patch.term !== undefined) normalized.term = requiredText(patch.term, "ภาคการศึกษา");
-  if (patch.section !== undefined) normalized.section = requiredText(patch.section, "กลุ่มเรียน");
   if (Object.keys(normalized).length === 0) {
     throw new Error("กรุณาระบุข้อมูลรายวิชาที่ต้องการปรับแก้");
   }

@@ -502,6 +502,73 @@ describe("mock DB Institution academic workflow", () => {
     expect(result.current.courseOfferingChangeRequests).toHaveLength(2);
   });
 
+  it("sanitizes legacy sections from active data without rewriting audit history", async () => {
+    const offering = DEFAULT_COURSE_OFFERINGS.find((item) => item.id === "offering-bcp-101")!;
+    const request = normalizeCourseOfferingChangeRequests([])
+      .find((item) => item.id === "COCHG-2569-001")!;
+    const auditEvent = readAuditEvents()[0]!;
+    const historicalAudit = JSON.stringify([{
+      ...auditEvent,
+      before: { courseOffering: { ...offering, section: "SIR-01" } },
+      after: { courseOffering: { ...offering, section: "SIR-02" } },
+    }]);
+
+    window.localStorage.setItem("mock_course_offerings", JSON.stringify([{
+      ...offering,
+      term: "2/2570",
+      section: "LEGACY-01",
+    }]));
+    window.localStorage.setItem("mock_course_offering_change_requests", JSON.stringify([
+      {
+        ...request,
+        id: "COCHG-LEGACY-MIXED",
+        proposedChanges: { term: "2/2570", section: "LEGACY-02" },
+      },
+      {
+        ...request,
+        proposedChanges: { section: "LEGACY-03" },
+      },
+    ]));
+    window.localStorage.setItem(AUDIT_STORAGE_KEY, historicalAudit);
+
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    const hydratedOffering = result.current.courseOfferings.find((item) => item.id === offering.id);
+    const mixedRequest = result.current.courseOfferingChangeRequests.find((item) => (
+      item.id === "COCHG-LEGACY-MIXED"
+    ));
+    const archivedSectionRequest = result.current.courseOfferingChangeRequests.find((item) => (
+      item.id === "COCHG-2569-001"
+    ));
+    expect(hydratedOffering).toMatchObject({ term: "2/2570" });
+    expect(hydratedOffering).not.toHaveProperty("section");
+    expect(mixedRequest?.proposedChanges).toEqual({ term: "2/2570" });
+    expect(mixedRequest?.history).toEqual(request.history);
+    expect(archivedSectionRequest).toMatchObject({
+      status: "rejected",
+      proposedChanges: {},
+      latestReview: { decision: "rejected" },
+    });
+    expect(archivedSectionRequest?.history.at(-1)?.reason)
+      .toBe("ระบบยุติคำขอเดิมเนื่องจากปรับโครงสร้างรายการเปิดสอน");
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem("mock_course_offerings") ?? "")
+        .not.toContain('"section"');
+      expect(window.localStorage.getItem("mock_course_offering_change_requests") ?? "")
+        .not.toContain('"section"');
+      expect(window.localStorage.getItem("mock_db_schema_version")).toBe("7");
+    });
+    expect(normalizeCourseOfferingChangeRequests(JSON.parse(
+      window.localStorage.getItem("mock_course_offering_change_requests") ?? "[]",
+    )).find((item) => item.id === "COCHG-2569-001")).toMatchObject({
+      status: "rejected",
+      proposedChanges: {},
+    });
+    expect(window.localStorage.getItem(AUDIT_STORAGE_KEY)).toBe(historicalAudit);
+  });
+
   it("adds, edits, and softly ends an Institution teacher with audited scope", async () => {
     const { result } = renderHook(() => useMockDb(), { wrapper });
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
@@ -721,8 +788,8 @@ describe("mock DB Institution academic workflow", () => {
       actor: institutionActor,
       courseOfferingId: "offering-bcp-220",
       reviewerTeacherId: "teacher-001",
-      proposedChanges: { section: "SIR-03" },
-      reason: "ปรับกลุ่มเรียนก่อนโอนผู้รับผิดชอบ",
+      proposedChanges: { credits: 4 },
+      reason: "ปรับหน่วยกิตก่อนโอนผู้รับผิดชอบ",
     }));
 
     expect(() => result.current.respondTeachingAssignment({

@@ -243,7 +243,7 @@ export default function InstitutionAssignmentsSection() {
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="assignment-course" className="text-sm font-medium">รายวิชาและกลุ่มเรียน</label>
+                <label htmlFor="assignment-course" className="text-sm font-medium">รายการเปิดสอน</label>
                 <select
                   id="assignment-course"
                   value={courseOfferingId}
@@ -252,10 +252,10 @@ export default function InstitutionAssignmentsSection() {
                   aria-describedby={formError ? "assignment-error" : undefined}
                   className={selectClassName}
                 >
-                  <option value="">เลือกรายวิชา</option>
+                  <option value="">เลือกรายการเปิดสอน</option>
                   {offerings.map((offering) => (
                     <option key={offering.id} value={offering.id}>
-                      {offering.courseCode} · กลุ่มเรียน {offering.section}
+                      {offering.courseCode} · {offering.courseTitle} · {offering.term}
                     </option>
                   ))}
                 </select>
@@ -335,7 +335,7 @@ export default function InstitutionAssignmentsSection() {
                       <TableCell>
                         {offering?.courseCode ?? "ไม่พบข้อมูลรายวิชาในขอบเขต"}
                         <p className="text-xs text-muted-foreground">
-                          {offering ? `${offering.courseTitle} · กลุ่มเรียน ${offering.section}` : "ไม่พบข้อมูลรายวิชา"}
+                          {offering ? `${offering.courseTitle} · ${offering.term}` : "ไม่พบข้อมูลรายวิชา"}
                         </p>
                       </TableCell>
                       <TableCell className="text-sm">
@@ -348,7 +348,7 @@ export default function InstitutionAssignmentsSection() {
                             <div className="max-w-xs whitespace-normal rounded-lg border border-warning-border bg-warning-soft p-2 text-xs text-warning-on-soft">
                               <p className="font-medium">รออาจารย์ตอบรับข้อมูลใหม่</p>
                               <p className="mt-1">
-                                {pendingTeacher?.name ?? "ไม่พบข้อมูลอาจารย์ในขอบเขต"} · {pendingOffering?.courseCode ?? "ไม่พบข้อมูลรายวิชาในขอบเขต"}
+                                {pendingTeacher?.name ?? "ไม่พบข้อมูลอาจารย์ในขอบเขต"} · {pendingOffering ? `${pendingOffering.courseCode} · ${pendingOffering.term}` : "ไม่พบข้อมูลรายวิชาในขอบเขต"}
                               </p>
                               <p className="mt-0.5">
                                 {formatInstitutionDate(assignment.pendingChanges.startsAt)} – {formatInstitutionDate(assignment.pendingChanges.endsAt)}
@@ -434,7 +434,7 @@ export default function InstitutionAssignmentsSection() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="edit-assignment-course" className="text-sm font-medium">รายวิชาและกลุ่มเรียน</label>
+                <label htmlFor="edit-assignment-course" className="text-sm font-medium">รายการเปิดสอน</label>
                 <select
                   id="edit-assignment-course"
                   value={dialogCourseId}
@@ -444,7 +444,7 @@ export default function InstitutionAssignmentsSection() {
                 >
                   {offerings.map((offering) => (
                     <option key={offering.id} value={offering.id}>
-                      {offering.courseCode} · กลุ่มเรียน {offering.section}
+                      {offering.courseCode} · {offering.courseTitle} · {offering.term}
                     </option>
                   ))}
                 </select>

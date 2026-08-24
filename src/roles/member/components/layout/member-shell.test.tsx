@@ -52,7 +52,7 @@ describe("member shell", () => {
     for (const menuItem of await screen.findAllByRole("menuitem")) {
       expect(menuItem.className).toContain("min-h-11");
     }
-    fireEvent.click(await screen.findByRole("menuitem", { name: /ประวัติวิชาชีพ/ }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Pharmacist Profile/ }));
     expect(push).toHaveBeenCalledWith("/member/passport");
 
     fireEvent.pointerDown(screen.getByRole("button", { name: /เมนูบัญชีผู้ใช้ของ/ }), { button: 0, ctrlKey: false });
@@ -67,7 +67,7 @@ describe("member shell", () => {
 
   it.each([
     ["/member/dashboard", "ภาพรวม"],
-    ["/member/students", "ประวัติวิชาชีพ"],
+    ["/member/students", "Pharmacist Profile"],
     ["/member/schedule", "ตารางกิจกรรมการฝึกอบรม"],
     ["/member/registration", "สถานะการลงทะเบียน"],
     ["/member/registration/courses", "ลงทะเบียนเรียน"],
@@ -77,7 +77,7 @@ describe("member shell", () => {
     ["/member/requests", "คำร้องของฉัน"],
     ["/member/research", "ค้นหางานวิจัยและบทความวิชาการ"],
     ["/member/admission", "ระบบสมัครสอบหนังสืออนุมัติ / วุฒิบัตร"],
-    ["/member/passport", "ประวัติวิชาชีพ"],
+    ["/member/passport", "Pharmacist Profile"],
     ["/member/cpd", "ระบบสะสมหน่วยกิตการศึกษาต่อเนื่อง (CPD)"],
     ["/member/pathway", "เส้นทางการศึกษา (Learning Pathway)"],
     ["/member/news", "ข่าวสารและประกาศ"],
@@ -147,8 +147,9 @@ describe("member shell", () => {
     expect(mobileMenu.className).toContain("bg-sidebar");
     expect(within(mobileMenu).getByRole("navigation", { name: "เมนูสมาชิก" })).toBeTruthy();
     expect(within(mobileMenu).getByRole("button", { name: "ปิดเมนูหลัก" }).className).toContain("h-11");
-    expect(within(mobileMenu).getByText("The Information System of the Royal College of Thailand")).toBeTruthy();
-    const dashboardLink = within(mobileMenu).getByRole("link", { name: /The Information System of the Royal College of Thailand/ });
+    expect(within(mobileMenu).getByText("PCOR")).toBeTruthy();
+    expect(within(mobileMenu).getByText("Pharmacy College Online Registry")).toBeTruthy();
+    const dashboardLink = within(mobileMenu).getByRole("link", { name: /Pharmacy College Online Registry/ });
     dashboardLink.addEventListener("click", (event) => event.preventDefault(), { once: true });
     fireEvent.click(dashboardLink);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

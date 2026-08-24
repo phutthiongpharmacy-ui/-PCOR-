@@ -12,6 +12,7 @@ import {
   fullNameTh,
   fullNameEn,
   formatThaiDate,
+  specializationsForDisplay,
   credentialTypeLabels,
   licenseStatusLabels,
 } from "@/roles/shared/member/domain";
@@ -32,7 +33,7 @@ export default function VerifyPage({ params }: { params: Promise<{ token: string
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 p-6 text-center">
         <span className="material-symbols-outlined mb-3 text-5xl text-danger">gpp_bad</span>
-        <h1 className="text-xl font-bold">ไม่พบประวัติวิชาชีพ</h1>
+        <h1 className="text-xl font-bold">ไม่พบ Pharmacist Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">รหัสตรวจสอบ <span className="font-mono">{token}</span> ไม่ถูกต้องหรือถูกยกเลิก</p>
       </div>
     );
@@ -40,6 +41,7 @@ export default function VerifyPage({ params }: { params: Promise<{ token: string
 
   const licMeta = licenseStatusLabels[p.license.status];
   const verifiedCompetencies = p.competencies.filter((c) => c.verification.status === "verified").length;
+  const specializations = specializationsForDisplay(p, true);
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-gradient-to-b from-primary/5 to-muted/20 p-4 py-10">
@@ -71,17 +73,19 @@ export default function VerifyPage({ params }: { params: Promise<{ token: string
           </div>
 
           {/* Specializations */}
-          <div className="mt-4 w-full text-left">
-            <div className="mb-1.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">ความเชี่ยวชาญเฉพาะทาง</div>
-            <div className="space-y-1.5">
-              {p.specializations.map((s) => (
-                <div key={s.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                  <span className="text-xs font-medium">{s.specialtyTh} · {s.collegeShort}</span>
-                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-2xs font-semibold text-primary">{credentialTypeLabels[s.type]}</span>
-                </div>
-              ))}
+          {specializations.length > 0 && (
+            <div className="mt-4 w-full text-left">
+              <div className="mb-1.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">ความเชี่ยวชาญเฉพาะทาง</div>
+              <div className="space-y-1.5">
+                {specializations.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                    <span className="text-xs font-medium">{s.specialtyTh} · {s.collegeShort}</span>
+                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-2xs font-semibold text-primary">{credentialTypeLabels[s.type]}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-4 flex w-full items-center justify-center gap-6 rounded-lg bg-muted/40 py-3 text-center">
             <div>
