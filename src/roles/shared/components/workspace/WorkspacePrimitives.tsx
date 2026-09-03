@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export function WorkspaceHeader({
   eyebrow,
@@ -33,12 +34,14 @@ export function MetricCard({
   note,
   icon,
   emphasis = "default",
+  size = "default",
 }: {
   label: string;
   value: string | number;
   note: string;
   icon: string;
   emphasis?: "default" | "warning" | "success" | "danger";
+  size?: "default" | "sm";
 }) {
   const tone = emphasis === "warning"
     ? "bg-warning-soft text-warning-on-soft"
@@ -48,21 +51,25 @@ export function MetricCard({
         ? "bg-danger-soft text-danger"
         : "bg-primary/10 text-primary";
   return (
-    <Card className="border-border">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-foreground">{value}</p>
+    <Card size={size} className="border-border">
+      <CardContent className={cn(size === "sm" ? "px-4" : "p-5")}>
+        <div className={cn("flex items-start justify-between", size === "sm" ? "gap-2" : "gap-3")}>
+          <div className="min-w-0">
+            <p className={cn("font-medium text-muted-foreground", size === "sm" ? "text-xs" : "text-sm")}>{label}</p>
+            <p className={cn("font-bold tabular-nums text-foreground", size === "sm" ? "mt-1 text-2xl" : "mt-2 text-3xl")}>{value}</p>
           </div>
           <span
             aria-hidden="true"
-            className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full ${tone}`}
+            className={cn(
+              "flex shrink-0 items-center justify-center overflow-hidden rounded-full",
+              size === "sm" ? "size-8" : "size-10",
+              tone,
+            )}
           >
-            <span className="material-symbols-outlined text-2xl leading-none">{icon}</span>
+            <span className={cn("material-symbols-outlined leading-none", size === "sm" ? "text-xl" : "text-2xl")}>{icon}</span>
           </span>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">{note}</p>
+        <p className={cn("text-pretty text-xs text-muted-foreground", size === "sm" ? "mt-1" : "mt-3")}>{note}</p>
       </CardContent>
     </Card>
   );

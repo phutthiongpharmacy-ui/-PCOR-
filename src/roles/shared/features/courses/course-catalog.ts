@@ -6,6 +6,7 @@ import {
 
 export type { CollegeCode } from "@/roles/shared/data/college-directory";
 export type CourseClassification = "required" | "general";
+export type ShortCourseTrack = "standard" | "advanced";
 
 interface CourseDefinitionBase {
   id: string;
@@ -29,6 +30,7 @@ export interface NormalCourseDefinition extends CourseDefinitionBase {
 
 export interface ShortCourseDefinition extends CourseDefinitionBase {
   kind: "short_course";
+  shortCourseTrack: ShortCourseTrack;
   code?: never;
   classification: "general";
   credits: number;
@@ -43,7 +45,16 @@ export const courseInstitutions = {
   "inst-ramathibodi": { code: "INST-RAMA", name: "สถาบันฝึกอบรมโรงพยาบาลรามาธิบดี" },
 } as const;
 const course = (input: Omit<NormalCourseDefinition, "kind" | "availableInstitutionIds" | "duration"> & Partial<Pick<NormalCourseDefinition, "availableInstitutionIds" | "duration">>): NormalCourseDefinition => ({ kind: "course", availableInstitutionIds: allInstitutions, duration: "1 ภาคการศึกษา", ...input });
-const shortCourse = (input: Omit<ShortCourseDefinition, "kind" | "classification" | "availableInstitutionIds"> & Partial<Pick<ShortCourseDefinition, "availableInstitutionIds">>): ShortCourseDefinition => ({ kind: "short_course", classification: "general", availableInstitutionIds: allInstitutions, ...input });
+const shortCourse = (
+  input: Omit<ShortCourseDefinition, "kind" | "classification" | "availableInstitutionIds" | "shortCourseTrack"> &
+    Partial<Pick<ShortCourseDefinition, "availableInstitutionIds" | "shortCourseTrack">>,
+): ShortCourseDefinition => ({
+  kind: "short_course",
+  shortCourseTrack: "standard",
+  classification: "general",
+  availableInstitutionIds: allInstitutions,
+  ...input,
+});
 
 export const courseCatalog: CourseDefinition[] = [
   course({ id: "course-cpc-101", code: "วคบท-101", titleTh: "ระบาดวิทยาเพื่อการคุ้มครองผู้บริโภค", titleEn: "Epidemiology for Consumer Protection", collegeCode: "วคบท.", responsibleInstitutionId: "inst-chula", classification: "required", credits: 4, capacity: 40, enrolled: 38, status: "active" }),
@@ -66,12 +77,21 @@ export const courseCatalog: CourseDefinition[] = [
   course({ id: "course-therapy-302", code: "วภท-302", titleTh: "การประเมินผู้ป่วยข้างเตียง", titleEn: "Bedside Patient Assessment", collegeCode: "วภท.", responsibleInstitutionId: "inst-siriraj", classification: "required", credits: 12, capacity: 20, enrolled: 15, status: "active" }),
   course({ id: "course-therapy-303", code: "วภท-303", titleTh: "การพัฒนาโครงร่างวิจัยทางคลินิก", titleEn: "Clinical Research Proposal Development", collegeCode: "วภท.", responsibleInstitutionId: "inst-chula", classification: "required", credits: 12, capacity: 20, enrolled: 12, status: "active" }),
   course({ id: "course-therapy-304", code: "วภท-304", titleTh: "ความปลอดภัยด้านยาในผู้ป่วยซับซ้อน", titleEn: "Medication Safety in Complex Care", collegeCode: "วภท.", responsibleInstitutionId: "inst-ramathibodi", classification: "general", credits: 3, capacity: 24, enrolled: 16, status: "active" }),
-  shortCourse({ id: "short-chronic-care", titleTh: "การดูแลผู้ป่วยโรคเรื้อรังสำหรับเภสัชกร", titleEn: "Chronic Care for Pharmacists", collegeCode: "วภท.", responsibleInstitutionId: "inst-siriraj", credits: 4, capacity: 35, enrolled: 28, duration: "4 เดือน", status: "active" }),
-  shortCourse({ id: "short-pharmacy-leadership", titleTh: "ภาวะผู้นำสำหรับงานเภสัชกรรม", titleEn: "Leadership for Pharmacy Practice", collegeCode: "CPAT", responsibleInstitutionId: "inst-chula", credits: 3, capacity: 40, enrolled: 31, duration: "3 เดือน", status: "active" }),
+  shortCourse({ id: "short-chronic-care", titleTh: "การดูแลผู้ป่วยโรคเรื้อรังสำหรับเภสัชกร", titleEn: "Chronic Care for Pharmacists", collegeCode: "วภท.", responsibleInstitutionId: "inst-siriraj", shortCourseTrack: "advanced", credits: 4, capacity: 35, enrolled: 28, duration: "4 เดือน", status: "active" }),
+  shortCourse({ id: "short-pharmacy-leadership", titleTh: "ภาวะผู้นำสำหรับงานเภสัชกรรม", titleEn: "Leadership for Pharmacy Practice", collegeCode: "CPAT", responsibleInstitutionId: "inst-chula", shortCourseTrack: "advanced", credits: 3, capacity: 40, enrolled: 31, duration: "3 เดือน", status: "active" }),
   shortCourse({ id: "short-community-screening", titleTh: "การคัดกรองสุขภาพในร้านยา", titleEn: "Health Screening in Community Pharmacy", collegeCode: "วภช.", responsibleInstitutionId: "inst-siriraj", credits: 3, capacity: 30, enrolled: 26, duration: "3 เดือน", status: "active" }),
   shortCourse({ id: "short-herbal-safety", titleTh: "ความปลอดภัยของผลิตภัณฑ์สมุนไพร", titleEn: "Herbal Product Safety", collegeCode: "สมุนไพร", responsibleInstitutionId: "inst-chula", credits: 3, capacity: 30, enrolled: 19, duration: "4 เดือน", status: "active" }),
-  shortCourse({ id: "short-regulatory-writing", titleTh: "การเขียนเอกสารกำกับผลิตภัณฑ์สุขภาพ", titleEn: "Regulatory Writing for Health Products", collegeCode: "วคบท.", responsibleInstitutionId: "inst-chula", credits: 3, capacity: 25, enrolled: 17, duration: "3 เดือน", status: "active" }),
+  shortCourse({ id: "short-regulatory-writing", titleTh: "การเขียนเอกสารกำกับผลิตภัณฑ์สุขภาพ", titleEn: "Regulatory Writing for Health Products", collegeCode: "วคบท.", responsibleInstitutionId: "inst-chula", shortCourseTrack: "advanced", credits: 3, capacity: 25, enrolled: 17, duration: "3 เดือน", status: "active" }),
 ];
+
+export function getCourseTypeLabel(item: CourseDefinition) {
+  if (item.kind === "short_course") {
+    return item.shortCourseTrack === "advanced"
+      ? "หลักสูตรระยะสั้น (ต่อยอด)"
+      : "หลักสูตรระยะสั้น";
+  }
+  return item.classification === "required" ? "วิชาบังคับ" : "วิชาทั่วไป";
+}
 
 export const courseCodeConfiguration = {
   collegePrefixes: COLLEGE_ABBREVIATIONS,

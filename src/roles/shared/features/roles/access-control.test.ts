@@ -67,6 +67,24 @@ describe("canonical portal access", () => {
     )).toBe(true);
   });
 
+  it("allows only Institution Admin into the institution admission-review route", () => {
+    const institution = session(
+      "institution_admin",
+      ORGANISATIONS.siriraj,
+      ["institution:org-inst-siriraj"],
+    );
+    expect(canPortalSessionAccessArea(
+      institution,
+      "institution",
+      "/institution/admissions",
+    )).toBe(true);
+    expect(canPortalSessionAccessArea(
+      session("teacher", ORGANISATIONS.siriraj, ["course:assigned"]),
+      "institution",
+      "/institution/admissions",
+    )).toBe(false);
+  });
+
   it("requires both organisation and resource scope", () => {
     const teacher = session(
       "teacher",

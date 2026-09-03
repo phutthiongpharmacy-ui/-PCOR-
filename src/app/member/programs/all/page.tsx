@@ -16,16 +16,29 @@ import {
   UNIVERSITY_OPTIONS,
   type UniversityName,
 } from "@/roles/shared/data/university-directory";
-import { courseCatalog, courseInstitutions } from "@/roles/shared/features/courses/course-catalog";
+import {
+  courseCatalog,
+  courseInstitutions,
+  getCourseTypeLabel,
+  type CourseDefinition,
+} from "@/roles/shared/features/courses/course-catalog";
 
 type CollegeFilter = "all" | (typeof COLLEGE_OPTIONS)[number]["value"];
 type UniversityFilter = "all" | UniversityName;
+type CourseKindFilter = "all" | "course" | "short_course" | "short_course_advanced";
+
+function matchesCourseKind(item: CourseDefinition, filter: CourseKindFilter) {
+  if (filter === "all") return true;
+  if (filter === "course") return item.kind === "course";
+  if (item.kind !== "short_course") return false;
+  return item.shortCourseTrack === (filter === "short_course_advanced" ? "advanced" : "standard");
+}
 
 export default function AllCoursesPage() {
   const [query, setQuery] = useState("");
   const [college, setCollege] = useState<CollegeFilter>("all");
   const [university, setUniversity] = useState<UniversityFilter>("all");
-  const [kind, setKind] = useState<"all" | "course" | "short_course">("all");
+  const [kind, setKind] = useState<CourseKindFilter>("all");
   const normalized = query.trim().toLocaleLowerCase("th-TH");
   const visible = courseCatalog.filter((item) => {
     const institutionId = item.responsibleInstitutionId as keyof typeof courseInstitutions;
@@ -35,20 +48,20 @@ export default function AllCoursesPage() {
     return (!normalized || haystack.includes(normalized)) &&
       (college === "all" || item.collegeCode === college) &&
       (university === "all" || getUniversityNameForInstitution(institutionId) === university) &&
-      (kind === "all" || item.kind === kind);
+      matchesCourseKind(item, kind);
   });
 
   return (
-    <PageShell className="space-y-5">
+    <PageShell size="full" className="space-y-5">
       <ProgramSectionNav active="all" />
       <Card>
-        <CardContent className="p-5">
+        <CardContent className="p-4 sm:p-5">
           <form
             role="search"
             onSubmit={(event) => event.preventDefault()}
-            className="grid gap-4 md:grid-cols-2 lg:grid-cols-[minmax(14rem,0.9fr)_minmax(0,0.75fr)_minmax(0,0.5fr)_minmax(0,0.45fr)]"
+            className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
           >
-            <div className="md:col-span-2 lg:col-span-1">
+            <div className="md:col-span-2 xl:col-span-1">
               <label htmlFor="course-search" className="mb-1.5 block text-sm font-medium">ค้นหา</label>
               <Input
                 id="course-search"
@@ -83,7 +96,7 @@ export default function AllCoursesPage() {
                 {UNIVERSITY_OPTIONS.map((option) => <option key={option}>{option}</option>)}
               </select>
             </div>
-            <div className="md:col-span-2 lg:col-span-1">
+            <div className="md:col-span-2 xl:col-span-1">
               <label htmlFor="course-kind" className="mb-1.5 block text-sm font-medium">ประเภทรายการ</label>
               <select
                 id="course-kind"
@@ -94,6 +107,7 @@ export default function AllCoursesPage() {
                 <option value="all">ทุกประเภท</option>
                 <option value="course">รายวิชาปกติ</option>
                 <option value="short_course">หลักสูตรระยะสั้น</option>
+                <option value="short_course_advanced">หลักสูตรระยะสั้น (ต่อยอด)</option>
               </select>
             </div>
           </form>
@@ -102,7 +116,52 @@ export default function AllCoursesPage() {
           </p>
         </CardContent>
       </Card>
-      <div className="overflow-x-auto rounded-xl border border-border bg-card"><Table className="min-w-[900px]"><TableHeader><TableRow><TableHead>รหัส</TableHead><TableHead>ชื่อรายการ</TableHead><TableHead>ประเภท</TableHead><TableHead>สถาบันที่รับผิดชอบ</TableHead><TableHead>หน่วยกิต</TableHead><TableHead>ระยะเวลา</TableHead><TableHead>สถานะ</TableHead></TableRow></TableHeader><TableBody>{visible.map((item) => { const institution = courseInstitutions[item.responsibleInstitutionId as keyof typeof courseInstitutions]; return <TableRow key={item.id}><TableCell className="font-mono text-xs">{formatCollegeCourseCode(item.code, item.collegeCode)}</TableCell><TableCell className="max-w-sm whitespace-normal"><p className="font-medium">{item.titleTh}</p><p className="mt-1 text-xs text-muted-foreground">{item.titleEn}</p></TableCell><TableCell><Badge variant="secondary">{item.kind === "short_course" ? "หลักสูตรระยะสั้น" : item.classification === "required" ? "วิชาบังคับ" : "วิชาทั่วไป"}</Badge></TableCell><TableCell className="max-w-xs whitespace-normal"><p>{institution?.name}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{institution?.code}</p></TableCell><TableCell>{item.credits}</TableCell><TableCell>{item.duration}</TableCell><TableCell><Badge variant={item.status === "active" ? "success" : "neutral"}>{item.status === "active" ? "เปิดสอน" : "ปิดรับ"}</Badge></TableCell></TableRow>; })}</TableBody></Table>{visible.length === 0 && <div className="p-12 text-center text-sm text-muted-foreground">ไม่พบรายการที่ตรงกับเงื่อนไข</div>}</div>
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <Table className="min-w-[900px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>รหัส</TableHead>
+              <TableHead>ชื่อรายการ</TableHead>
+              <TableHead>ประเภท</TableHead>
+              <TableHead>สถาบันที่รับผิดชอบ</TableHead>
+              <TableHead>หน่วยกิต</TableHead>
+              <TableHead>ระยะเวลา</TableHead>
+              <TableHead>สถานะ</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visible.map((item) => {
+              const institution = courseInstitutions[item.responsibleInstitutionId as keyof typeof courseInstitutions];
+              return (
+                <TableRow key={item.id}>
+                  <TableCell className="font-mono text-xs">{formatCollegeCourseCode(item.code, item.collegeCode)}</TableCell>
+                  <TableCell className="max-w-sm whitespace-normal">
+                    <p className="font-medium">{item.titleTh}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.titleEn}</p>
+                  </TableCell>
+                  <TableCell><Badge variant="secondary">{getCourseTypeLabel(item)}</Badge></TableCell>
+                  <TableCell className="max-w-xs whitespace-normal">
+                    <p>{institution?.name}</p>
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">{institution?.code}</p>
+                  </TableCell>
+                  <TableCell>{item.credits}</TableCell>
+                  <TableCell>{item.duration}</TableCell>
+                  <TableCell>
+                    <Badge variant={item.status === "active" ? "success" : "neutral"}>
+                      {item.status === "active" ? "เปิดสอน" : "ปิดรับ"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+        {visible.length === 0 && (
+          <div className="p-12 text-center text-sm text-muted-foreground">
+            ไม่พบรายการที่ตรงกับเงื่อนไข
+          </div>
+        )}
+      </div>
     </PageShell>
   );
 }

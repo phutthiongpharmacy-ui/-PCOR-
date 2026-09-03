@@ -4,8 +4,11 @@ import { allocateCourseCode, courseCatalog } from "./course-catalog";
 describe("course catalog", () => {
   it("contains 25 stable definitions including code-less short courses", () => {
     expect(courseCatalog).toHaveLength(25);
-    expect(courseCatalog.filter((item) => item.kind === "short_course")).toHaveLength(5);
-    expect(courseCatalog.filter((item) => item.kind === "short_course").every((item) => item.code === undefined)).toBe(true);
+    const shortCourses = courseCatalog.filter((item) => item.kind === "short_course");
+    expect(shortCourses).toHaveLength(5);
+    expect(shortCourses.filter((item) => item.shortCourseTrack === "standard")).toHaveLength(2);
+    expect(shortCourses.filter((item) => item.shortCourseTrack === "advanced")).toHaveLength(3);
+    expect(shortCourses.every((item) => item.code === undefined)).toBe(true);
   });
 
   it("allocates deterministic codes without colliding with persisted definitions", () => {

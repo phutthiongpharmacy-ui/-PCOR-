@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/input";
 import { ProgramSectionNav } from "@/roles/member/features/programs/ProgramSectionNav";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { formatCollegeCourseCode, getCollegeOption } from "@/roles/shared/data/college-directory";
-import { groupCoursesByCollege } from "@/roles/shared/features/courses/course-catalog";
+import {
+  getCourseTypeLabel,
+  groupCoursesByCollege,
+} from "@/roles/shared/features/courses/course-catalog";
 
 export default function ByCollegePage() {
   const [query, setQuery] = useState("");
@@ -56,7 +59,7 @@ export default function ByCollegePage() {
                       <span className="mt-1 block text-xs text-muted-foreground">{item.titleEn} · {item.duration}</span>
                     </span>
                     <Badge variant="secondary">
-                      {item.kind === "short_course" ? "หลักสูตรระยะสั้น" : item.classification === "required" ? "วิชาบังคับ" : "วิชาทั่วไป"}
+                      {getCourseTypeLabel(item)}
                     </Badge>
                   </div>
                 ))}

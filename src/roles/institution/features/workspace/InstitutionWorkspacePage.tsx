@@ -14,14 +14,17 @@ import {
   useSensitiveViewAudit,
 } from "@/roles/shared/features/audit";
 import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
+import { selectInstitutionAdmissions } from "@/roles/institution/features/admissions/institution-admission-review";
 
 import InstitutionAssignmentsSection from "./InstitutionAssignmentsSection";
+import InstitutionAdmissionsSection from "./InstitutionAdmissionsSection";
 import InstitutionCoursesSection from "./InstitutionCoursesSection";
 import InstitutionDashboardSection from "./InstitutionDashboardSection";
 import InstitutionRegistrationsSection from "./InstitutionRegistrationsSection";
 import InstitutionResultsSection from "./InstitutionResultsSection";
 import InstitutionStudentsSection from "./InstitutionStudentsSection";
 import InstitutionTeachersSection from "./InstitutionTeachersSection";
+import { institutionActor } from "./institution-workspace-utils";
 
 type InstitutionSection =
   | "dashboard"
@@ -30,7 +33,8 @@ type InstitutionSection =
   | "assignments"
   | "courses"
   | "registrations"
-  | "results";
+  | "results"
+  | "admissions";
 
 export default function InstitutionWorkspacePage({ section }: { section: InstitutionSection }) {
   const { session, isReady: isSessionReady } = usePortalSession();
@@ -62,7 +66,13 @@ export default function InstitutionWorkspacePage({ section }: { section: Institu
   const results = useMemo(() => (
     db.subjectResults.filter((item) => offeringIds.has(item.courseOfferingId))
   ), [db.subjectResults, offeringIds]);
-  const isSensitiveSection = section === "students" || section === "registrations" || section === "results";
+  const admissions = useMemo(() => (
+    selectInstitutionAdmissions(db.admissions, institutionId)
+  ), [db.admissions, institutionId]);
+  const isSensitiveSection = section === "students" ||
+    section === "registrations" ||
+    section === "results" ||
+    section === "admissions";
   const sensitiveViewAudit = useSensitiveViewAudit({
     enabled: isSessionReady && db.isLoaded && isSensitiveSection && Boolean(institution),
     session,
@@ -101,6 +111,12 @@ export default function InstitutionWorkspacePage({ section }: { section: Institu
     <InstitutionCoursesSection />
   ) : section === "registrations" ? (
     <InstitutionRegistrationsSection />
+  ) : section === "admissions" ? (
+    <InstitutionAdmissionsSection
+      admissions={admissions}
+      actor={institutionActor(session)}
+      onReview={db.reviewInstitutionAdmission}
+    />
   ) : (
     <InstitutionResultsSection />
   );

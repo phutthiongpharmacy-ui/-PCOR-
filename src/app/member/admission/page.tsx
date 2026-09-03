@@ -35,6 +35,7 @@ import {
 } from "@/roles/shared/features/license-eligibility";
 import { currentMemberPassport } from "@/roles/shared/member/domain/member";
 import type { PaymentMethod } from "@/roles/shared/features/finance";
+import { ORGANISATIONS } from "@/roles/shared/features/roles/access-model";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -271,6 +272,7 @@ export default function ExamApplicationPage() {
         return;
       }
 
+      const submittedAt = new Date();
       const newId = `EXM-2569-${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`;
       setAdmissions((prev) => [
         {
@@ -278,7 +280,10 @@ export default function ExamApplicationPage() {
           name: `${profileData.personalInfo.title}${profileData.personalInfo.firstName} ${profileData.personalInfo.lastName}`,
           license: profileData.personalInfo.licenseNumber || "รอตรวจสอบ",
           program: selectedCollege || "ไม่ระบุ",
-          date: new Date().toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }),
+          date: submittedAt.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }),
+          submittedAt: submittedAt.toISOString(),
+          institutionId: ORGANISATIONS.siriraj.id,
+          applicationType: "exam",
           status: "pending",
           documents,
           documentStatus,

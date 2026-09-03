@@ -455,6 +455,59 @@ describe("mock DB registration migration", () => {
   });
 });
 
+describe("mock DB Institution admission workflow", () => {
+  it("seeds 15 applications for the Siriraj institution queue", async () => {
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    const sirirajAdmissions = result.current.admissions.filter((admission) => (
+      admission.institutionId === institutionActor.organisationId
+    ));
+
+    expect(sirirajAdmissions).toHaveLength(15);
+    expect(new Set(sirirajAdmissions.map((admission) => admission.id)).size).toBe(15);
+    expect(new Set(sirirajAdmissions.map((admission) => admission.applicationType)))
+      .toEqual(new Set(["exam", "study"]));
+    expect(new Set(sirirajAdmissions.map((admission) => admission.status)))
+      .toEqual(new Set(["pending", "approved", "rejected"]));
+  });
+
+  it("reviews and approves only an in-scope application with an audit trail", async () => {
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    act(() => result.current.reviewInstitutionAdmission({
+      admissionId: "APP-2026-001",
+      actor: institutionActor,
+      decision: "documents_complete",
+    }));
+    expect(result.current.admissions.find((item) => item.id === "APP-2026-001"))
+      .toMatchObject({ documentStatus: "complete", status: "pending" });
+
+    act(() => result.current.reviewInstitutionAdmission({
+      admissionId: "APP-2026-001",
+      actor: institutionActor,
+      decision: "approve",
+      reason: "ตรวจเอกสารและคุณสมบัติครบถ้วน",
+    }));
+    expect(result.current.admissions.find((item) => item.id === "APP-2026-001"))
+      .toMatchObject({
+        status: "approved",
+        decisionNote: "ตรวจเอกสารและคุณสมบัติครบถ้วน",
+        reviewedBy: institutionActor.userName,
+      });
+    expect(readAuditEvents().slice(-2).map((event) => event.action))
+      .toEqual(["admission.documents_reviewed", "admission.approve"]);
+
+    expect(() => result.current.reviewInstitutionAdmission({
+      admissionId: "APP-2026-003",
+      actor: institutionActor,
+      decision: "reject",
+      reason: "พยายามพิจารณาข้ามสถาบัน",
+    })).toThrowError("บัญชีนี้ไม่มีสิทธิ์จัดการข้อมูลของสถาบันดังกล่าว");
+  });
+});
+
 describe("mock DB Institution academic workflow", () => {
   it("migrates legacy assignments to accepted without dropping custom records", () => {
     const normalized = normalizeTeachingAssignments([{
@@ -558,7 +611,7 @@ describe("mock DB Institution academic workflow", () => {
         .not.toContain('"section"');
       expect(window.localStorage.getItem("mock_course_offering_change_requests") ?? "")
         .not.toContain('"section"');
-      expect(window.localStorage.getItem("mock_db_schema_version")).toBe("7");
+      expect(window.localStorage.getItem("mock_db_schema_version")).toBe("8");
     });
     expect(normalizeCourseOfferingChangeRequests(JSON.parse(
       window.localStorage.getItem("mock_course_offering_change_requests") ?? "[]",

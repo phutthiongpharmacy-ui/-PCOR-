@@ -103,6 +103,11 @@ import {
   isSystemRole,
   type OrganisationScope,
 } from "@/roles/shared/features/roles/access-model";
+import {
+  reviewInstitutionAdmissionRecord,
+  type AdmissionApplicationType,
+  type InstitutionAdmissionReviewInput,
+} from "@/roles/institution/features/admissions/institution-admission-review";
 
 // Types
 export type Status = "pending" | "approved" | "rejected";
@@ -113,10 +118,16 @@ export interface Admission {
   license: string;
   program: string;
   date: string;
+  submittedAt?: string;
+  institutionId: string;
+  applicationType: AdmissionApplicationType;
   status: Status;
   documents: AdmissionDocument[];
   documentStatus: AdmissionDocumentStatus;
   documentNote?: string;
+  decisionNote?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
   licenseStatus: LicenseVerificationStatus;
   licenseCheckedAt: string;
 }
@@ -331,6 +342,7 @@ interface MockDbContextType {
     documentStatus?: AdmissionDocumentStatus,
     documentNote?: string,
   ) => void;
+  reviewInstitutionAdmission: (input: InstitutionAdmissionReviewInput) => void;
 
   researchSubmissions: ResearchSubmission[];
   setResearchSubmissions: React.Dispatch<React.SetStateAction<ResearchSubmission[]>>;
@@ -538,6 +550,16 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+const legacyAdmissionRouting: Record<string, {
+  institutionId: string;
+  applicationType: AdmissionApplicationType;
+}> = {
+  "APP-2026-001": { institutionId: ORGANISATIONS.siriraj.id, applicationType: "exam" },
+  "APP-2026-002": { institutionId: ORGANISATIONS.siriraj.id, applicationType: "study" },
+  "APP-2026-003": { institutionId: ORGANISATIONS.chula.id, applicationType: "exam" },
+  "APP-2026-004": { institutionId: ORGANISATIONS.siriraj.id, applicationType: "study" },
+};
+
 function normalizeAdmission(value: unknown): Admission | null {
   if (!value || typeof value !== "object") return null;
   const admission = value as Partial<Admission>;
@@ -555,15 +577,29 @@ function normalizeAdmission(value: unknown): Admission | null {
     ? admission.status
     : "pending";
   const documents = normalizeAdmissionDocuments(admission.documents, status);
+  const hasMissingDocuments = documents.some((document) => document.reviewStatus === "missing");
   const hasPendingDocumentReview = documents.some((document) => (
-    document.reviewStatus === "missing" ||
-    (Boolean(document.file) && document.reviewStatus !== "accepted")
+    Boolean(document.file) && document.reviewStatus !== "accepted"
   ));
   const documentStatus: AdmissionDocumentStatus = status === "approved"
     ? "complete"
-    : hasPendingDocumentReview
+    : hasMissingDocuments
+      ? "incomplete"
+      : hasPendingDocumentReview
       ? "pending"
       : "complete";
+  const legacyRouting = legacyAdmissionRouting[admission.id.trim()];
+  const institutionId = isNonEmptyString(admission.institutionId) &&
+    ORGANISATION_LIST.some((organisation) => (
+      organisation.kind === "institution" && organisation.id === admission.institutionId?.trim()
+    ))
+    ? admission.institutionId.trim()
+    : legacyRouting?.institutionId ?? ORGANISATIONS.siriraj.id;
+  const applicationType: AdmissionApplicationType = admission.applicationType === "study"
+    ? "study"
+    : admission.applicationType === "exam"
+      ? "exam"
+      : legacyRouting?.applicationType ?? "exam";
   const registryRecord = findLicenseRegistryRecord(admission.license);
   const licenseStatus = isLicenseStatus(admission.licenseStatus)
     ? admission.licenseStatus
@@ -578,11 +614,22 @@ function normalizeAdmission(value: unknown): Admission | null {
     license: admission.license.trim(),
     program: admission.program.trim(),
     date: admission.date.trim(),
+    institutionId,
+    applicationType,
     status,
     documents,
     documentStatus,
     documentNote: typeof admission.documentNote === "string"
       ? admission.documentNote
+      : undefined,
+    decisionNote: typeof admission.decisionNote === "string"
+      ? admission.decisionNote
+      : undefined,
+    reviewedAt: isNonEmptyString(admission.reviewedAt)
+      ? admission.reviewedAt
+      : undefined,
+    reviewedBy: isNonEmptyString(admission.reviewedBy)
+      ? admission.reviewedBy
       : undefined,
     licenseStatus,
     licenseCheckedAt,
@@ -590,10 +637,254 @@ function normalizeAdmission(value: unknown): Admission | null {
 }
 
 const defaultAdmissions: Admission[] = [
-  { id: "APP-2026-001", name: "ภก. สมชาย ใจดี", license: "ภ.12345", program: "เภสัชบำบัด", date: "24 มิ.ย. 2569", status: "pending", documents: createMockSubmittedDocuments(), documentStatus: "pending", licenseStatus: "active", licenseCheckedAt: "2026-08-11T07:30:00.000Z" },
-  { id: "APP-2026-002", name: "ภญ. สมหญิง รักชาติ", license: "ภ.23456", program: "เภสัชกรรมชุมชน", date: "23 มิ.ย. 2569", status: "pending", documents: createMockSubmittedDocuments({ missingId: "license" }), documentStatus: "pending", documentNote: "หากต้องการแนบสำเนาใบประกอบวิชาชีพ กรุณาใช้ไฟล์ที่เห็นวันหมดอายุชัดเจน", licenseStatus: "suspended", licenseCheckedAt: "2026-08-11T07:30:00.000Z" },
-  { id: "APP-2026-003", name: "ภก. มานะ อดทน", license: "ภ.34567", program: "การคุ้มครองผู้บริโภค", date: "22 มิ.ย. 2569", status: "approved", documents: createMockSubmittedDocuments({ accepted: true }), documentStatus: "complete", licenseStatus: "active", licenseCheckedAt: "2026-08-11T07:30:00.000Z" },
-  { id: "APP-2026-004", name: "ภก. ธนา วรเวช", license: "ภ.45678", program: "เภสัชบำบัด", date: "21 มิ.ย. 2569", status: "pending", documents: createAdmissionDocuments(), documentStatus: "complete", licenseStatus: "revoked", licenseCheckedAt: "2026-08-11T07:30:00.000Z" },
+  {
+    id: "APP-2026-001",
+    name: "ภก. สมชาย ใจดี",
+    license: "ภ.12345",
+    program: "เภสัชบำบัด",
+    date: "24 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "exam",
+    status: "pending",
+    documents: createMockSubmittedDocuments(),
+    documentStatus: "pending",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-002",
+    name: "ภญ. สมหญิง รักชาติ",
+    license: "ภ.23456",
+    program: "เภสัชกรรมชุมชน",
+    date: "23 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "pending",
+    documents: createMockSubmittedDocuments({ missingId: "license" }),
+    documentStatus: "incomplete",
+    documentNote: "กรุณาแนบสำเนาใบประกอบวิชาชีพที่เห็นวันหมดอายุชัดเจน",
+    licenseStatus: "suspended",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-003",
+    name: "ภก. มานะ อดทน",
+    license: "ภ.34567",
+    program: "การคุ้มครองผู้บริโภค",
+    date: "22 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.chula.id,
+    applicationType: "exam",
+    status: "approved",
+    documents: createMockSubmittedDocuments({ accepted: true }),
+    documentStatus: "complete",
+    decisionNote: "เอกสารและคุณสมบัติครบถ้วนตามเกณฑ์",
+    reviewedAt: "2026-08-12T04:15:00.000Z",
+    reviewedBy: "ภญ. อรอนงค์ วัฒนกิจ",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-004",
+    name: "ภก. ธนา วรเวช",
+    license: "ภ.45678",
+    program: "เภสัชบำบัด",
+    date: "21 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "pending",
+    documents: createAdmissionDocuments(),
+    documentStatus: "complete",
+    licenseStatus: "revoked",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-005",
+    name: "ภญ. กานดา ศรีสุข",
+    license: "ภ.56789",
+    program: "เภสัชอุตสาหการ",
+    date: "20 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "exam",
+    status: "pending",
+    documents: createMockSubmittedDocuments(),
+    documentStatus: "pending",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-006",
+    name: "ภก. นที พิพัฒน์",
+    license: "ภ.67890",
+    program: "การบริบาลทางเภสัชกรรม",
+    date: "19 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "approved",
+    documents: createMockSubmittedDocuments({ accepted: true }),
+    documentStatus: "complete",
+    decisionNote: "เอกสารและคุณสมบัติครบถ้วนตามเกณฑ์",
+    reviewedAt: "2026-08-12T03:20:00.000Z",
+    reviewedBy: "ภก. วิชาญ อัครเวช",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-007",
+    name: "ภญ. สายฝน สกุลไทย",
+    license: "ภ.78901",
+    program: "เภสัชกรรมชุมชน",
+    date: "18 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "exam",
+    status: "pending",
+    documents: createMockSubmittedDocuments({ missingId: "transcript" }),
+    documentStatus: "incomplete",
+    documentNote: "กรุณาแนบใบประมวลผลการศึกษาฉบับสมบูรณ์",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-008",
+    name: "ภญ. พิมพ์ชนก แสงทอง",
+    license: "ภ.89012",
+    program: "เภสัชบำบัด",
+    date: "17 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "rejected",
+    documents: createMockSubmittedDocuments({ accepted: true }),
+    documentStatus: "complete",
+    decisionNote: "คุณสมบัติด้านประสบการณ์ยังไม่ครบตามเกณฑ์ของหลักสูตร",
+    reviewedAt: "2026-08-12T02:45:00.000Z",
+    reviewedBy: "ภก. วิชาญ อัครเวช",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-009",
+    name: "ภก. ณัฐวุฒิ คงมั่น",
+    license: "ภ.90123",
+    program: "การคุ้มครองผู้บริโภค",
+    date: "16 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "exam",
+    status: "approved",
+    documents: createMockSubmittedDocuments({ accepted: true }),
+    documentStatus: "complete",
+    decisionNote: "ตรวจสอบเอกสารและใบอนุญาตแล้ว",
+    reviewedAt: "2026-08-12T02:10:00.000Z",
+    reviewedBy: "ภก. วิชาญ อัครเวช",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-010",
+    name: "ภญ. อรอนงค์ สุขใจ",
+    license: "ภ.11223",
+    program: "เภสัชกรรมปฐมภูมิ",
+    date: "15 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "pending",
+    documents: createMockSubmittedDocuments(),
+    documentStatus: "pending",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-011",
+    name: "ภก. ชยพล วัฒนะ",
+    license: "ภ.22334",
+    program: "เภสัชอุตสาหการ",
+    date: "14 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "exam",
+    status: "rejected",
+    documents: createMockSubmittedDocuments({ accepted: true }),
+    documentStatus: "complete",
+    decisionNote: "จำนวนที่นั่งในรอบนี้เต็มแล้ว",
+    reviewedAt: "2026-08-12T01:35:00.000Z",
+    reviewedBy: "ภก. วิชาญ อัครเวช",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-012",
+    name: "ภญ. พรทิพย์ เรืองรอง",
+    license: "ภ.33445",
+    program: "เภสัชกรรมชุมชน",
+    date: "13 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "pending",
+    documents: createMockSubmittedDocuments({ missingId: "degree" }),
+    documentStatus: "incomplete",
+    documentNote: "กรุณาแนบสำเนาใบปริญญาบัตรหรือหนังสือรับรองการศึกษา",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-013",
+    name: "ภก. เอกชัย บุญส่ง",
+    license: "ภ.44556",
+    program: "เภสัชบำบัด",
+    date: "12 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "exam",
+    status: "approved",
+    documents: createMockSubmittedDocuments({ accepted: true }),
+    documentStatus: "complete",
+    decisionNote: "คุณสมบัติครบถ้วนและผ่านการตรวจเอกสาร",
+    reviewedAt: "2026-08-12T01:00:00.000Z",
+    reviewedBy: "ภก. วิชาญ อัครเวช",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-014",
+    name: "ภญ. ธัญญารัตน์ มณีวงศ์",
+    license: "ภ.55667",
+    program: "การบริบาลทางเภสัชกรรม",
+    date: "11 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "pending",
+    documents: createMockSubmittedDocuments(),
+    documentStatus: "pending",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-015",
+    name: "ภก. วรพล ตั้งมั่น",
+    license: "ภ.66778",
+    program: "การคุ้มครองผู้บริโภค",
+    date: "10 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "exam",
+    status: "pending",
+    documents: createMockSubmittedDocuments(),
+    documentStatus: "pending",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
+  {
+    id: "APP-2026-016",
+    name: "ภญ. นภัสสร สุขสวัสดิ์",
+    license: "ภ.77889",
+    program: "เภสัชกรรมปฐมภูมิ",
+    date: "9 มิ.ย. 2569",
+    institutionId: ORGANISATIONS.siriraj.id,
+    applicationType: "study",
+    status: "approved",
+    documents: createMockSubmittedDocuments({ accepted: true }),
+    documentStatus: "complete",
+    decisionNote: "เอกสารครบถ้วนตามประกาศรับสมัคร",
+    reviewedAt: "2026-08-12T00:25:00.000Z",
+    reviewedBy: "ภก. วิชาญ อัครเวช",
+    licenseStatus: "active",
+    licenseCheckedAt: "2026-08-11T07:30:00.000Z",
+  },
 ];
 
 function normalizeAdmissions(value: unknown): Admission[] {
@@ -1784,7 +2075,7 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("mock_examRequests", JSON.stringify(examRequests));
     localStorage.setItem("mock_certificates", JSON.stringify(certificates));
     localStorage.setItem("mock_settings", JSON.stringify(settings));
-    localStorage.setItem("mock_db_schema_version", "7");
+    localStorage.setItem("mock_db_schema_version", "8");
   }, [academicInstitutions, academicStudents, academicTeachers, admissions, certificates, courseOfferingChangeRequests, courseOfferings, courseProposals, courseRequests, examRequests, isLoaded, payments, programs, registrationInvoices, registrations, researchSubmissions, settings, studentAffiliations, subjectResults, teacherAffiliations, teachingAssignments]);
 
   const updateAdmissionStatus = (id: string, status: Status) => setAdmissions((previous) => previous.map((admission) => {
@@ -1813,6 +2104,48 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
       ? { ...admission, documents, documentStatus, documentNote }
       : admission
   )));
+  const reviewInstitutionAdmission = (input: InstitutionAdmissionReviewInput) => {
+    const admission = admissions.find((item) => item.id === input.admissionId);
+    if (!admission) throw new Error("ไม่พบคำสมัครที่ต้องการพิจารณา");
+    assertInstitutionAdminMutationScope(input.actor, admission.institutionId);
+
+    const occurredAt = new Date().toISOString();
+    const updated = reviewInstitutionAdmissionRecord({
+      ...input,
+      admission,
+      reviewedAt: occurredAt,
+    });
+    const action = {
+      documents_complete: "admission.documents_reviewed",
+      request_information: "admission.request_information",
+      approve: "admission.approve",
+      reject: "admission.reject",
+    }[input.decision];
+    const reason = input.reason?.trim() || {
+      documents_complete: "ยืนยันว่าเอกสารประกอบคำสมัครครบถ้วน",
+      request_information: "ขอข้อมูลหรือเอกสารเพิ่มเติมจากผู้สมัคร",
+      approve: "เอกสารและคุณสมบัติครบถ้วนตามเกณฑ์",
+      reject: "ไม่อนุมัติคำสมัคร",
+    }[input.decision];
+
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action,
+      resourceType: "admission",
+      resourceId: admission.id,
+      resourceLabel: `${admission.name} · ${admission.program}`,
+      resourceOrganisationId: admission.institutionId,
+      before: admission,
+      after: updated,
+      reason,
+      evidenceReference: `admission-documents:${admission.id}`,
+      occurredAt,
+    });
+    setAdmissions((previous) => previous.map((item) => (
+      item.id === admission.id ? updated : item
+    )));
+  };
   const addResearchSubmission = (submission: ResearchSubmission) => setResearchSubmissions((previous) => [submission, ...previous]);
   const updateResearchSubmissionStatus = (
     id: string,
@@ -2845,6 +3178,7 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
       value={{
         isLoaded,
         admissions, setAdmissions, updateAdmissionStatus, updateAdmissionDocuments,
+        reviewInstitutionAdmission,
         researchSubmissions, setResearchSubmissions, addResearchSubmission, updateResearchSubmissionStatus,
         payments, setPayments, updatePaymentStatus, addPayment,
         programs, setPrograms,

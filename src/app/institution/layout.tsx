@@ -8,6 +8,7 @@ const institutionNavigation = [
   { href: "/institution/courses", icon: "menu_book", label: "รายวิชาที่เปิดสอน" },
   { href: "/institution/registrations", icon: "how_to_reg", label: "ติดตามสถานะลงทะเบียน" },
   { href: "/institution/results", icon: "fact_check", label: "ติดตามผลการเรียน" },
+  { href: "/institution/admissions", icon: "person_check", label: "อนุมัติการสมัครของผู้เรียน" },
 ] as const;
 
 export default function InstitutionLayout({ children }: { children: React.ReactNode }) {

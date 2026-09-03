@@ -95,7 +95,7 @@ function WorkspaceNavigation({
               )}
             >
               <span aria-hidden="true" className={cn("material-symbols-outlined text-xl", active && "fill")}>{item.icon}</span>
-              <span className="truncate">{item.label}</span>
+              <span className="min-w-0 whitespace-normal leading-snug">{item.label}</span>
               {item.badge ? (
                 <span className="ml-auto rounded-full bg-sidebar-primary/10 px-2 py-0.5 text-xs tabular-nums text-sidebar-primary">
                   {item.badge}
@@ -199,10 +199,10 @@ export function RoleWorkspaceShell({
       resourceId={resourceId}
     >
       <div className="flex min-h-screen bg-surface-container-low">
-        <aside className="fixed bottom-4 left-4 top-4 z-40 hidden w-60 flex-col overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar shadow-app-float md:flex">
+        <aside className="fixed bottom-4 left-4 top-4 z-40 hidden w-60 flex-col overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar shadow-app-float lg:flex">
           <WorkspaceNavigation role={role} navItems={navItems} />
         </aside>
-        <div className="fixed left-2 top-5 z-50 md:hidden">
+        <div className="fixed left-2 top-5 z-50 lg:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl shadow-sm" aria-label="เปิดเมนู">
@@ -236,8 +236,8 @@ export function RoleWorkspaceShell({
           </Sheet>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col md:pl-sidebar">
-          <header className="fixed left-14 right-2 top-4 z-40 flex h-14 items-center justify-between rounded-2xl border border-border bg-card px-4 shadow-sm md:left-sidebar md:right-4">
+        <div className="flex min-w-0 flex-1 flex-col lg:pl-sidebar">
+          <header className="fixed left-14 right-2 top-4 z-40 flex h-14 items-center justify-between rounded-2xl border border-border bg-card px-4 shadow-sm lg:left-sidebar lg:right-4">
             <div className="min-w-0">
               <h1 className="truncate text-sm font-semibold text-foreground">{currentTitle}</h1>
               <p className="truncate text-xs text-muted-foreground">{session?.organisation.name ?? "กำลังตรวจสอบขอบเขตข้อมูล"}</p>
