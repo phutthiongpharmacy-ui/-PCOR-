@@ -29,6 +29,7 @@ import { clearPortalSession } from "@/roles/shared/features/roles/mock-login";
 import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
 import { ROLE_PRESENTATION } from "@/roles/shared/features/roles/access-model";
 import { useMemberNotifications } from "@/roles/member/features/notifications/member-notifications";
+import { PortalTopBar } from "@/roles/shared/components/layout/PortalTopBar";
 
 const adminNotificationsData: typeof notificationsData = [
   {
@@ -200,12 +201,7 @@ export default function TopNav() {
   }
 
   return (
-    <header
-      className={cn(
-        "fixed left-14 right-2 top-4 z-40 flex h-14 items-center rounded-2xl px-2 shadow-sm sm:px-3 md:left-sidebar md:right-4 md:px-4",
-        "border border-border bg-card",
-      )}
-    >
+    <PortalTopBar className="md:left-sidebar md:right-4">
       {/* Breadcrumbs */}
       {isAdminRoute && <Breadcrumb>
         <BreadcrumbList className="text-sm">
@@ -433,6 +429,6 @@ export default function TopNav() {
         </DropdownMenu>
 
       </div>
-    </header>
+    </PortalTopBar>
   );
 }

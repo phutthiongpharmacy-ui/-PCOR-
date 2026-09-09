@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { PortalAccessGate } from "@/roles/shared/components/auth/PortalAccessGate";
 import { OrganizationLogo } from "@/roles/shared/components/brand/OrganizationLogo";
 import PageTransition from "@/roles/shared/components/layout/PageTransition";
+import { PortalTopBar } from "@/roles/shared/components/layout/PortalTopBar";
 import { ROLE_PRESENTATION, type SystemRole } from "@/roles/shared/features/roles/access-model";
 import {
   clearPortalSession,
@@ -31,6 +32,22 @@ export interface WorkspaceNavItem {
   icon: string;
   label: string;
   badge?: string;
+  section?: {
+    id: string;
+    label: string;
+  };
+}
+
+export function groupWorkspaceNavigationItems(navItems: readonly WorkspaceNavItem[]) {
+  return navItems.reduce<Array<{ section?: WorkspaceNavItem["section"]; items: WorkspaceNavItem[] }>>((groups, item) => {
+    const previous = groups.at(-1);
+    if (previous && previous.section?.id === item.section?.id) {
+      previous.items.push(item);
+      return groups;
+    }
+    groups.push({ section: item.section, items: [item] });
+    return groups;
+  }, []);
 }
 
 interface RoleWorkspaceShellProps {
@@ -54,6 +71,7 @@ function WorkspaceNavigation({
   const pathname = usePathname();
   const { session } = usePortalSession();
   const presentation = ROLE_PRESENTATION[role];
+  const navigationGroups = groupWorkspaceNavigationItems(navItems);
 
   return (
     <div className="flex h-full flex-col">
@@ -78,30 +96,44 @@ function WorkspaceNavigation({
       </Link>
 
       <div className="mx-4 h-px bg-sidebar-border" />
-      <nav aria-label={`เมนู ${presentation.label}`} className="custom-scrollbar flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
-        {navItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+      <nav aria-label={`เมนู ${presentation.label}`} className="custom-scrollbar flex-1 space-y-4 overflow-y-auto px-3 py-3">
+        {navigationGroups.map((group, groupIndex) => {
+          const sectionLabelId = group.section ? `${role}-nav-section-${group.section.id}-${groupIndex}` : undefined;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-sidebar-primary/10 text-sidebar-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              )}
-            >
-              <span aria-hidden="true" className={cn("material-symbols-outlined text-xl", active && "fill")}>{item.icon}</span>
-              <span className="min-w-0 whitespace-normal leading-snug">{item.label}</span>
-              {item.badge ? (
-                <span className="ml-auto rounded-full bg-sidebar-primary/10 px-2 py-0.5 text-xs tabular-nums text-sidebar-primary">
-                  {item.badge}
-                </span>
-              ) : active ? <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary" /> : null}
-            </Link>
+            <div key={group.section?.id ?? `ungrouped-${groupIndex}`} role={group.section ? "group" : undefined} aria-labelledby={sectionLabelId}>
+              {group.section ? (
+                <p id={sectionLabelId} className="mb-1.5 px-3 text-2xs font-semibold uppercase tracking-wider text-sidebar-foreground/70">
+                  {group.section.label}
+                </p>
+              ) : null}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onNavigate}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-sidebar-primary/10 text-sidebar-primary"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                      )}
+                    >
+                      <span aria-hidden="true" className={cn("material-symbols-outlined text-xl", active && "fill")}>{item.icon}</span>
+                      <span className="min-w-0 whitespace-normal leading-snug">{item.label}</span>
+                      {item.badge ? (
+                        <span className="ml-auto rounded-full bg-sidebar-primary/10 px-2 py-0.5 text-xs tabular-nums text-sidebar-primary">
+                          {item.badge}
+                        </span>
+                      ) : active ? <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary" /> : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
@@ -237,7 +269,7 @@ export function RoleWorkspaceShell({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col lg:pl-sidebar">
-          <header className="fixed left-14 right-2 top-4 z-40 flex h-14 items-center justify-between rounded-2xl border border-border bg-card px-4 shadow-sm lg:left-sidebar lg:right-4">
+          <PortalTopBar className="lg:left-sidebar lg:right-4">
             <div className="min-w-0">
               <h1 className="truncate text-sm font-semibold text-foreground">{currentTitle}</h1>
               <p className="truncate text-xs text-muted-foreground">{session?.organisation.name ?? "กำลังตรวจสอบขอบเขตข้อมูล"}</p>
@@ -247,7 +279,7 @@ export function RoleWorkspaceShell({
               roleLabel={ROLE_PRESENTATION[role].label}
               organisationName={session?.organisation.name ?? "กำลังโหลดข้อมูลองค์กร"}
             />
-          </header>
+          </PortalTopBar>
           <main className="min-w-0 flex-1 px-4 pb-10 pt-20 md:pr-6">
             <PageTransition>{children}</PageTransition>
           </main>

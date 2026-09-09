@@ -261,6 +261,69 @@ describe("mock DB registration migration", () => {
     })).toThrowError("Teacher cannot review a registration outside their assignment");
   });
 
+  it("keeps PromptPay evidence pending until staff approval pays the invoice", async () => {
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    act(() => result.current.reviewRegistration({
+      registrationId: "REG-MEMBER-002",
+      decision: "approve",
+      actor: {
+        userId: "teacher-002",
+        userName: "อ. ภญ. ชนิดา ศรีสุข",
+        role: "teacher",
+        organisationId: "org-inst-chula",
+        resourceScopes: ["course:offering-vpt-302"],
+      },
+      reason: "ตรวจคุณสมบัติและข้อมูลรายวิชาครบถ้วน",
+    }));
+    const invoice = result.current.registrationInvoices.find((item) => (
+      item.registrationId === "REG-MEMBER-002"
+    ))!;
+
+    act(() => result.current.addPayment({
+      id: "PAY-PENDING-REG-MEMBER-002",
+      invoiceId: invoice.id,
+      studentId: "วภท-2568-001",
+      name: "ภก. สมชาย ใจดี",
+      program: "เภสัชบำบัด",
+      amount: invoice.baseAmount,
+      date: "11 ส.ค. 2569",
+      status: "pending",
+      type: invoice.description,
+      method: "promptpay",
+      referenceNo: "PROMPTPAY-REF-001",
+      submittedAt: "2026-08-11T03:00:00.000Z",
+      evidenceFileName: "payment-proof.png",
+      evidenceFileType: "image/png",
+      evidenceFileSize: 1_024,
+      evidenceDataUrl: "data:image/png;base64,cHJvb2Y=",
+    }));
+
+    expect(result.current.payments.find((item) => item.id === "PAY-PENDING-REG-MEMBER-002")?.status)
+      .toBe("pending");
+    expect(result.current.payments.find((item) => item.id === "PAY-PENDING-REG-MEMBER-002")?.evidenceDataUrl)
+      .toMatch(/^data:image\/png;base64,/);
+    expect(result.current.registrationInvoices.find((item) => item.id === invoice.id))
+      .toMatchObject({ status: "awaiting_payment", paidAt: undefined });
+    expect(result.current.registrations.find((item) => item.id === "REG-MEMBER-002")?.status)
+      .toBe("awaiting_payment");
+
+    act(() => result.current.updatePaymentStatus("PAY-PENDING-REG-MEMBER-002", "approved"));
+
+    expect(result.current.payments.find((item) => item.id === "PAY-PENDING-REG-MEMBER-002")?.status)
+      .toBe("approved");
+    expect(result.current.registrationInvoices.find((item) => item.id === invoice.id)?.status)
+      .toBe("paid");
+    expect(result.current.registrations.find((item) => item.id === "REG-MEMBER-002")?.status)
+      .toBe("enrolled");
+    expect(readAuditEvents().at(-1)).toMatchObject({
+      action: "payment.confirmed",
+      resource: { id: invoice.id },
+      evidenceReference: "PROMPTPAY-REF-001",
+    });
+  });
+
   it("moves a paid registration to enrolled and creates a pending result", async () => {
     const { result } = renderHook(() => useMockDb(), { wrapper });
     await waitFor(() => expect(result.current.isLoaded).toBe(true));

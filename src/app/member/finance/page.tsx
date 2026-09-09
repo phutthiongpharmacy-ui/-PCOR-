@@ -4,9 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   getInvoiceBreakdown,
-  resolveInvoiceStatus,
-  type InvoiceDisplayStatus,
-  type PaymentMethod,
   type RegistrationInvoice,
 } from "@/roles/shared/features/finance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,16 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
-import PaymentDialog from "@/roles/member/features/finance/components/PaymentDialog";
-import { useMockDb, type Payment } from "@/providers/mock-db-provider";
+import PaymentDialog, { type PromptPaySubmission } from "@/roles/member/features/finance/components/PaymentDialog";
+import { useMockDb } from "@/providers/mock-db-provider";
 import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
 import {
-  normalPaymentStatus,
+  resolveStudentInvoiceDisplayStatus,
   selectStudentRegistrationInvoices,
+  type StudentInvoiceDisplayStatus,
 } from "./payment-flow";
 
 type InvoiceView = RegistrationInvoice & {
-  displayStatus: InvoiceDisplayStatus | "pending_review";
+  displayStatus: StudentInvoiceDisplayStatus;
   amountDue: number;
   lateFee: number;
 };
@@ -33,9 +31,12 @@ const statusMeta = {
   awaiting_payment: { variant: "warning", label: "รอชำระเงิน" },
   overdue: { variant: "danger", label: "ค้างชำระ" },
   pending_review: { variant: "info", label: "รอตรวจสอบการชำระเงิน" },
+  payment_rejected: { variant: "danger", label: "หลักฐานไม่ผ่านการตรวจสอบ" },
   paid: { variant: "success", label: "ชำระแล้ว" },
   cancelled: { variant: "neutral", label: "ยกเลิก" },
 } as const;
+
+const interactiveInvoiceId = "LOCAL-REGISTRATION-FEE";
 
 function formatDueAt(dueAt?: string) {
   if (!dueAt) return "รออนุมัติ";
@@ -50,12 +51,12 @@ function formatDueAt(dueAt?: string) {
 }
 
 export default function FinancePage() {
-  const { registrationInvoices, payments, addPayment } = useMockDb();
+  const { registrationInvoices, payments } = useMockDb();
   const { session } = usePortalSession();
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [submissions, setSubmissions] = useState<Record<string, PromptPaySubmission>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
   const studentId = session?.role === "student" ? session.userId : "";
-  const studentName = session?.role === "student" ? session.displayName : "";
   const studentInvoices = useMemo(
     () => selectStudentRegistrationInvoices(registrationInvoices, studentId),
     [registrationInvoices, studentId],
@@ -82,13 +83,27 @@ export default function FinancePage() {
 
   const invoices = useMemo<InvoiceView[]>(() => {
     const now = new Date(nowMs);
-    return studentInvoices
+    const sourceInvoices: RegistrationInvoice[] = studentId ? [{
+      id: interactiveInvoiceId,
+      registrationId: "LOCAL-REGISTRATION",
+      studentId,
+      description: "ค่าลงทะเบียนรายวิชา",
+      baseAmount: 3_000,
+      status: "awaiting_payment",
+      createdAt: new Date(nowMs).toISOString(),
+      updatedAt: new Date(nowMs).toISOString(),
+    }, ...studentInvoices] : [];
+    return sourceInvoices
       .map((invoice) => {
         const latestPayment = payments.find((payment) => payment.invoiceId === invoice.id);
         const breakdown = getInvoiceBreakdown(invoice, now);
-        const displayStatus = latestPayment?.status === "pending"
-          ? "pending_review"
-          : resolveInvoiceStatus(invoice, now);
+        const displayStatus = resolveStudentInvoiceDisplayStatus(
+          invoice,
+          submissions[`${studentId}:${invoice.id}`] ? "pending" : latestPayment?.status === "pending" || latestPayment?.status === "rejected"
+            ? latestPayment.status
+            : null,
+          now,
+        );
         return {
           ...invoice,
           displayStatus,
@@ -96,7 +111,7 @@ export default function FinancePage() {
           lateFee: breakdown.lateFee,
         };
       });
-  }, [nowMs, payments, studentInvoices]);
+  }, [nowMs, payments, studentInvoices, studentId, submissions]);
 
   const selectedInvoice = selectedInvoiceId
     ? invoices.find((invoice) => invoice.id === selectedInvoiceId) ?? null
@@ -106,43 +121,18 @@ export default function FinancePage() {
     .filter((invoice) => invoice.displayStatus !== "cancelled")
     .reduce((total, invoice) => total + invoice.baseAmount, 0);
   const outstandingBalance = invoices
-    .filter((invoice) => invoice.displayStatus === "awaiting_payment" || invoice.displayStatus === "overdue")
+    .filter((invoice) => invoice.displayStatus === "awaiting_payment" || invoice.displayStatus === "overdue" || invoice.displayStatus === "payment_rejected")
     .reduce((total, invoice) => total + invoice.amountDue, 0);
   const hasLockedInvoice = invoices.some((invoice) => invoice.displayStatus === "locked");
 
-  const handleSubmitted = (invoiceId: string, method: PaymentMethod, referenceNo: string) => {
-    const invoice = registrationInvoices.find((item) => item.id === invoiceId);
-    const latestPayment = payments.find((payment) => payment.invoiceId === invoiceId);
-    const submittedAt = new Date();
-    const liveStatus = latestPayment?.status === "pending"
-      ? "pending_review"
-      : invoice
-        ? resolveInvoiceStatus(invoice, submittedAt)
-        : "cancelled";
-
-    if (!invoice || (liveStatus !== "awaiting_payment" && liveStatus !== "overdue")) {
+  const handleSubmitted = (invoiceId: string, submission: PromptPaySubmission) => {
+    const invoice = invoices.find((item) => item.id === invoiceId);
+    if (!invoice || !["awaiting_payment", "overdue", "payment_rejected"].includes(invoice.displayStatus)) {
       toast.error("รายการนี้ยังไม่พร้อมชำระเงิน");
-      return;
+      return false;
     }
-    const breakdown = getInvoiceBreakdown(invoice, submittedAt);
-    const submittedAtIso = submittedAt.toISOString();
-    const payment: Payment = {
-      id: `PAY-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`,
-      invoiceId,
-      studentId,
-      name: studentName,
-      program: "เภสัชบำบัด",
-      amount: breakdown.total,
-      date: submittedAt.toLocaleDateString("th-TH"),
-      status: normalPaymentStatus(method),
-      type: invoice.description,
-      method,
-      referenceNo,
-      submittedAt: submittedAtIso,
-    };
-    addPayment(payment);
-    setNowMs(submittedAt.getTime());
-    toast.success("ชำระเงินสำเร็จ");
+    setSubmissions((previous) => ({ ...previous, [`${studentId}:${invoiceId}`]: submission }));
+    return true;
   };
 
   return (
@@ -183,7 +173,7 @@ export default function FinancePage() {
               <TableBody>
                 {invoices.map((invoice) => {
                   const status = statusMeta[invoice.displayStatus];
-                  const payable = invoice.displayStatus === "awaiting_payment" || invoice.displayStatus === "overdue";
+                  const payable = invoice.displayStatus === "awaiting_payment" || invoice.displayStatus === "overdue" || invoice.displayStatus === "payment_rejected";
                   return (
                     <TableRow key={invoice.id}>
                       <TableCell className="text-xs py-3">{invoice.description}</TableCell>
@@ -191,12 +181,18 @@ export default function FinancePage() {
                         ฿{invoice.amountDue.toLocaleString()}
                         {invoice.lateFee > 0 && <p className="mt-1 text-xs text-danger">รวมค่าปรับ ฿{invoice.lateFee.toLocaleString()}</p>}
                       </TableCell>
-                      <TableCell className="text-xs py-3">{formatDueAt(invoice.dueAt)}</TableCell>
+                      <TableCell className="text-xs py-3">{invoice.id === interactiveInvoiceId ? "ไม่มีกำหนด" : formatDueAt(invoice.dueAt)}</TableCell>
                       <TableCell className="text-xs py-3"><Badge variant={status.variant}>{status.label}</Badge></TableCell>
                       <TableCell className="text-xs py-3">
-                        {payable && <Button size="sm" className="h-7 text-xs" onClick={() => setSelectedInvoiceId(invoice.id)}>ชำระเงิน</Button>}
-                        {invoice.displayStatus === "pending_review" && <span className="text-muted-foreground">กำลังตรวจสอบ</span>}
-                        {invoice.displayStatus === "paid" && <Button variant="ghost" size="sm" onClick={() => toast.info("กำลังจัดเตรียมใบเสร็จ PDF")}>ใบเสร็จ</Button>}
+                        {payable && <Button size="sm" className="min-h-11 text-xs" onClick={() => setSelectedInvoiceId(invoice.id)}>{invoice.displayStatus === "payment_rejected" ? "ส่งหลักฐานใหม่" : "ชำระเงิน"}</Button>}
+                        {invoice.displayStatus === "pending_review" && (submissions[`${studentId}:${invoice.id}`] ? (
+                          <Button variant="outline" size="sm" className="min-h-11" onClick={() => setSubmissions((previous) => {
+                            const next = { ...previous };
+                            delete next[`${studentId}:${invoice.id}`];
+                            return next;
+                          })}>เริ่มใหม่</Button>
+                        ) : <span className="text-muted-foreground">กำลังตรวจสอบ</span>)}
+                        {invoice.displayStatus === "paid" && <Button variant="ghost" size="sm" className="min-h-11" onClick={() => toast.info("กำลังจัดเตรียมใบเสร็จ PDF")}>ใบเสร็จ</Button>}
                         {invoice.displayStatus === "locked" && <span className="text-muted-foreground">ยังชำระไม่ได้</span>}
                       </TableCell>
                     </TableRow>
@@ -212,6 +208,7 @@ export default function FinancePage() {
       </PageShell>
       {selectedInvoice && (
         <PaymentDialog
+          successDescription="แสดงสถานะรอตรวจสอบในหน้านี้แล้ว ยังไม่มีการส่งข้อมูลให้เจ้าหน้าที่หรือรับชำระเงินจริง กดเสร็จสิ้นแล้วเริ่มใหม่เพื่อทำซ้ำได้"
           item={{
             id: selectedInvoice.id,
             description: selectedInvoice.description,

@@ -179,45 +179,24 @@ export default function TeacherWorkspacePage({
   };
 
   const renderDashboard = () => {
-    const pendingReviews = registrations.filter((registration) => registration.status === "pending").length;
-    const needsInfo = registrations.filter((registration) => registration.status === "needs_info").length;
+    const enrolledStudents = new Set(
+      registrations
+        .filter((registration) => registration.status === "enrolled")
+        .map((registration) => registration.studentId),
+    ).size;
     const unpublished = results.filter((result) => result.status === "pending" || result.status === "draft").length;
-    const recentEvents = registrations.flatMap((registration) => registration.history.map((event) => ({ ...event, resource: `${registration.courseCode} · ${registration.studentName}` }))).filter((event) => event.actorUserId === teacherId).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5);
     return (
       <>
         <WorkspaceHeader
           eyebrow="พื้นที่ทำงานอาจารย์"
           title="ภาพรวมงานสอน"
           description="เห็นเฉพาะสถาบันและรายวิชาที่ได้รับมอบหมายในช่วงเวลาปัจจุบัน"
-          action={{ href: "/teacher/registrations", label: "ตรวจคำขอลงทะเบียน", icon: "how_to_reg" }}
         />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <MetricCard label="รายวิชาที่สอน" value={offerings.length} note="ตามการมอบหมายการสอนที่ตอบรับแล้ว" icon="menu_book" />
-          <MetricCard label="รอตรวจลงทะเบียน" value={pendingReviews} note="ผ่านการตรวจคุณสมบัติจากระบบแล้ว" icon="pending_actions" emphasis="warning" />
-          <MetricCard label="ต้องการข้อมูลเพิ่ม" value={needsInfo} note="รอผู้เรียนส่งข้อมูลกลับ" icon="contact_support" />
+          <MetricCard label="ผู้เรียนในรายวิชา" value={enrolledStudents} note="นับผู้เรียนที่ลงทะเบียนแล้วโดยไม่ซ้ำคน" icon="groups" />
           <MetricCard label="ยังไม่ประกาศผล" value={unpublished} note="ยังไม่บันทึกและฉบับร่าง" icon="fact_check" emphasis={unpublished ? "warning" : "success"} />
         </div>
-        <Card className="border-border">
-          <CardHeader><CardTitle className="text-lg">งานล่าสุดของฉัน</CardTitle></CardHeader>
-          <CardContent>
-            {recentEvents.length ? (
-              <div className="divide-y divide-border">
-                {recentEvents.map((event) => (
-                  <div key={event.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{event.resource}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatRegistrationStatus(event.from)} → {formatRegistrationStatus(event.to)}
-                        {event.reason ? ` · ${event.reason}` : ""}
-                      </p>
-                    </div>
-                    <time className="text-xs text-muted-foreground">{formatDateTime(event.at)}</time>
-                  </div>
-                ))}
-              </div>
-            ) : <EmptyState title="ยังไม่มีงานล่าสุด" description="เมื่อพิจารณาคำขอหรือจัดการผล รายการจะปรากฏที่นี่" />}
-          </CardContent>
-        </Card>
       </>
     );
   };

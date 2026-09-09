@@ -64,24 +64,27 @@ describe("append-only User Audit Log", () => {
     window.removeEventListener(auditStore.AUDIT_STORE_EVENT, listener);
   });
 
-  it("requires reason and evidence for financial exceptions", () => {
-    const base = {
-      actor: {
-        userId: "staff-001",
-        userName: "ภญ. ปาริชาติ สุขเกษม",
-        role: "royal_college_staff" as const,
-        organisation: ORGANISATIONS.royalCollege,
-        resourceScopes: ["*"],
-      },
-      action: "payment.exception",
-      resource: { type: "invoice", id: "INV-001" },
-      before: { status: "paid" },
-      after: { status: "exception" },
-    };
-    expect(() => createAuditEvent(base)).toThrow("requires a reason");
-    expect(() => createAuditEvent({ ...base, reason: "ยอดไม่ตรง" }))
-      .toThrow("requires an evidence reference");
-  });
+  it.each(["payment.exception", "payment.review_approved", "payment.review_rejected"])(
+    "requires reason and evidence for financial action %s",
+    (action) => {
+      const base = {
+        actor: {
+          userId: "staff-001",
+          userName: "ภญ. ปาริชาติ สุขเกษม",
+          role: "royal_college_staff" as const,
+          organisation: ORGANISATIONS.royalCollege,
+          resourceScopes: ["*"],
+        },
+        action,
+        resource: { type: "invoice", id: "INV-001" },
+        before: { status: "paid" },
+        after: { status: "exception" },
+      };
+      expect(() => createAuditEvent(base)).toThrow("requires a reason");
+      expect(() => createAuditEvent({ ...base, reason: "ยอดไม่ตรง" }))
+        .toThrow("requires an evidence reference");
+    },
+  );
 
   it.each([
     "course_proposal.submit",

@@ -1,2 +1,5 @@
-import TeacherWorkspacePage from "@/roles/teacher/features/workspace/TeacherWorkspacePage";
-export default function Page() { return <TeacherWorkspacePage section="registrations" />; }
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/teacher/dashboard");
+}

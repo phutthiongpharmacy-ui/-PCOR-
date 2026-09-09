@@ -64,8 +64,8 @@ describe("portal login and session migration", () => {
   });
 
   it("preserves a same-workspace return path and rejects another role path", () => {
-    expect(resolvePortalLogin("teacher", "2323", "/teacher/registrations").destination)
-      .toBe("/teacher/registrations");
+    expect(resolvePortalLogin("teacher", "2323", "/teacher/courses").destination)
+      .toBe("/teacher/courses");
     expect(resolvePortalLogin("teacher", "2323", "/admin/settings").destination)
       .toBe("/teacher/dashboard");
   });

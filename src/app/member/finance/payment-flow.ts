@@ -1,17 +1,31 @@
 import { resolveMockPaymentOwner } from "@/roles/shared/data";
-import type {
-  PaymentMethod,
+import {
+  resolveInvoiceStatus,
+  type InvoiceDisplayStatus,
   RegistrationInvoice,
 } from "@/roles/shared/features/finance";
 
-const NORMAL_PAYMENT_STATUS: Record<PaymentMethod, "approved"> = {
-  promptpay: "approved",
-  credit_card: "approved",
-  debit_card: "approved",
-};
+export type StudentInvoiceDisplayStatus =
+  | InvoiceDisplayStatus
+  | "pending_review"
+  | "payment_rejected";
 
-export function normalPaymentStatus(method: PaymentMethod): "approved" {
-  return NORMAL_PAYMENT_STATUS[method];
+export function promptPaySubmissionStatus(): "pending" {
+  return "pending";
+}
+
+export function resolveStudentInvoiceDisplayStatus(
+  invoice: RegistrationInvoice,
+  latestPaymentStatus: "pending" | "rejected" | null | undefined,
+  now: Date | string = new Date(),
+): StudentInvoiceDisplayStatus {
+  const invoiceStatus = resolveInvoiceStatus(invoice, now);
+  const acceptsPaymentEvidence = invoiceStatus === "awaiting_payment" || invoiceStatus === "overdue";
+
+  if (!acceptsPaymentEvidence) return invoiceStatus;
+  if (latestPaymentStatus === "pending") return "pending_review";
+  if (latestPaymentStatus === "rejected") return "payment_rejected";
+  return invoiceStatus;
 }
 
 export function studentFinanceOwnerIds(studentId: string) {

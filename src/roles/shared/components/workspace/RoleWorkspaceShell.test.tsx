@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PORTAL_SESSION_KEY, resolvePortalLogin, savePortalSession } from "@/roles/shared/features/roles/mock-login";
 import {
   RoleWorkspaceShell,
+  groupWorkspaceNavigationItems,
   resolveWorkspaceNavigationTitle,
   type WorkspaceNavItem,
 } from "./RoleWorkspaceShell";
@@ -43,6 +44,26 @@ describe("RoleWorkspaceShell", () => {
       .toBe("พื้นที่อาจารย์");
   });
 
+  it("keeps labelled navigation sections in their declared order", () => {
+    const actionSection = { id: "actions", label: "งานที่ดำเนินการได้" };
+    const readOnlySection = { id: "read-only", label: "ติดตามและตรวจสอบ (ดูอย่างเดียว)" };
+    const groups = groupWorkspaceNavigationItems([
+      navItems[0],
+      { ...navItems[1], section: actionSection },
+      { href: "/teacher/results", icon: "grading", label: "บันทึกผล", section: actionSection },
+      { href: "/teacher/history", icon: "history", label: "ประวัติ", section: readOnlySection },
+    ]);
+
+    expect(groups.map((group) => ({
+      section: group.section?.label,
+      hrefs: group.items.map((item) => item.href),
+    }))).toEqual([
+      { section: undefined, hrefs: ["/teacher/dashboard"] },
+      { section: "งานที่ดำเนินการได้", hrefs: ["/teacher/courses", "/teacher/results"] },
+      { section: "ติดตามและตรวจสอบ (ดูอย่างเดียว)", hrefs: ["/teacher/history"] },
+    ]);
+  });
+
   it("uses opaque navigation surfaces and closes the mobile menu after navigation", async () => {
     render(
       <RoleWorkspaceShell area="teacher" role="teacher" navItems={navItems}>
@@ -52,6 +73,10 @@ describe("RoleWorkspaceShell", () => {
 
     const topBar = screen.getByRole("banner");
     expect(topBar.className).toContain("bg-card");
+    expect(topBar.className).toContain("width-before-scroll-bar");
+    expect(topBar.className).toContain("h-14");
+    expect(topBar.className).toContain("justify-between");
+    expect(topBar.className).toContain("px-4");
     expect(topBar.className).not.toContain("glass-panel");
     expect(within(topBar).getByRole("heading", { level: 1, name: "รายวิชาที่ได้รับมอบหมาย" })).toBeTruthy();
     expect(within(topBar).getByRole("button", { name: /เมนูบัญชีผู้ใช้ของ/ }).className).toContain("h-11");

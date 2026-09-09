@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { usePresidentAccess } from "@/roles/president/president-access";
 import { WorkspaceAccountMenu } from "@/roles/shared/components/workspace/RoleWorkspaceShell";
+import { PortalTopBar } from "@/roles/shared/components/layout/PortalTopBar";
 
 const pageTitles: Record<string, string> = {
   "/president/dashboard": "ภาพรวมประธาน / ผู้ลงนาม",
@@ -21,7 +22,7 @@ export default function PresidentTopBar() {
     : pageTitles[pathname] ?? "President Portal";
 
   return (
-    <header className="fixed left-14 right-2 top-4 z-40 flex h-14 items-center justify-between rounded-2xl border border-border bg-card px-4 shadow-sm md:left-sidebar md:right-4">
+    <PortalTopBar className="md:left-sidebar md:right-4">
       <div className="min-w-0"><h1 className="truncate text-sm font-semibold text-foreground">{title}</h1><p className="truncate text-xs text-muted-foreground">{assignment?.organisationScope.name}</p></div>
       <div className="flex shrink-0 items-center gap-2">
         <Badge variant="success" className="hidden h-auto py-1 sm:inline-flex">วาระปัจจุบัน</Badge>
@@ -31,6 +32,6 @@ export default function PresidentTopBar() {
           organisationName={assignment?.organisationScope.name ?? "กำลังโหลดข้อมูลองค์กร"}
         />
       </div>
-    </header>
+    </PortalTopBar>
   );
 }

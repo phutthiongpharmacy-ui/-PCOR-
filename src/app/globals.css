@@ -416,6 +416,18 @@
   }
 }
 
+/* Keep fixed workspace chrome identical on short, long, and scroll-locked pages. */
+html:has(.portal-top-bar) {
+  scrollbar-gutter: stable;
+}
+
+@supports (scrollbar-gutter: stable) {
+  /* The reserved gutter already handles the space that react-remove-scroll adds. */
+  .portal-top-bar.width-before-scroll-bar {
+    margin-right: 0 !important;
+  }
+}
+
 @utility glass-panel {
   background: var(--glass-surface);
   border: 1px solid var(--glass-border);

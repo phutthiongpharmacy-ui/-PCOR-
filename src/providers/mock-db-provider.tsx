@@ -145,6 +145,10 @@ export interface Payment {
   method?: PaymentMethod;
   referenceNo?: string;
   submittedAt?: string;
+  evidenceFileName?: string;
+  evidenceFileType?: string;
+  evidenceFileSize?: number;
+  evidenceDataUrl?: string;
 }
 
 export interface Program {

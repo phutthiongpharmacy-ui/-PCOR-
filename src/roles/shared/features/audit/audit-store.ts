@@ -48,7 +48,7 @@ export const DEFAULT_AUDIT_EVENTS: readonly UserAuditEvent[] = [
     resource: {
       type: "invoice",
       id: "INV-2569-002",
-      label: "รายการกระทบยอดผิดปกติ",
+      label: "รายการตรวจสอบที่ผิดปกติ",
       organisationId: ORGANISATIONS.royalCollege.id,
     },
     before: { status: "paid", matched: false },

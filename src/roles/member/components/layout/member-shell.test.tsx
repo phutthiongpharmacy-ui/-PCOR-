@@ -34,6 +34,10 @@ describe("member shell", () => {
     expect(topBar.className).toContain("bg-card");
     expect(topBar.className).not.toContain("glass-panel");
     expect(topBar.className).toContain("left-14");
+    expect(topBar.className).toContain("width-before-scroll-bar");
+    expect(topBar.className).toContain("h-14");
+    expect(topBar.className).toContain("justify-between");
+    expect(topBar.className).toContain("px-4");
     expect(within(topBar).getByRole("group", { name: "การทำงานของผู้ใช้" }).className).toContain("shrink-0");
 
     fireEvent.click(screen.getByRole("button", { name: "ศูนย์ช่วยเหลือ" }));

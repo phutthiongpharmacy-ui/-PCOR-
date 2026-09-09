@@ -27,6 +27,8 @@ export const AUDIT_ACTIONS = [
   "result.publish",
   "result.revise",
   "payment.confirmed",
+  "payment.review_approved",
+  "payment.review_rejected",
   "payment.reconcile",
   "payment.exception",
   "payment.cancel",
@@ -100,6 +102,8 @@ const REASON_REQUIRED_ACTIONS = new Set<string>([
   "course_proposal.review",
   "result.publish",
   "result.revise",
+  "payment.review_approved",
+  "payment.review_rejected",
   "payment.exception",
   "payment.cancel",
   "payment.refund",
@@ -110,6 +114,8 @@ const REASON_REQUIRED_ACTIONS = new Set<string>([
 ]);
 
 const EVIDENCE_REQUIRED_ACTIONS = new Set<string>([
+  "payment.review_approved",
+  "payment.review_rejected",
   "payment.exception",
   "payment.cancel",
   "payment.refund",

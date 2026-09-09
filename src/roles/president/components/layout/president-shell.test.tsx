@@ -39,6 +39,10 @@ describe("president shell", () => {
 
     const topBar = screen.getByRole("banner");
     expect(topBar.className).toContain("bg-card");
+    expect(topBar.className).toContain("width-before-scroll-bar");
+    expect(topBar.className).toContain("h-14");
+    expect(topBar.className).toContain("justify-between");
+    expect(topBar.className).toContain("px-4");
     expect(topBar.className).not.toContain("glass-panel");
     expect(within(topBar).getByRole("heading", { level: 1, name: "ตรวจสอบและลงนามคำร้อง" })).toBeTruthy();
     expect(within(topBar).getByRole("button", { name: /เมนูบัญชีผู้ใช้ของ/ }).className).toContain("h-11");
