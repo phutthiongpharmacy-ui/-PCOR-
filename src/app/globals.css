@@ -423,6 +423,10 @@ html:has(.portal-top-bar) {
 
 @supports (scrollbar-gutter: stable) {
   /* The reserved gutter already handles the space that react-remove-scroll adds. */
+  html:has(.portal-top-bar) body[data-scroll-locked] {
+    margin-right: 0 !important;
+  }
+
   .portal-top-bar.width-before-scroll-bar {
     margin-right: 0 !important;
   }

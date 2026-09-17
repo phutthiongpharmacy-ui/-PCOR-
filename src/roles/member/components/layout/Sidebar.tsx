@@ -32,6 +32,8 @@ const navGroups: {
       { href: "/member/registration", icon: "how_to_reg", label: "สถานะการลงทะเบียน" },
       { href: "/member/schedule", icon: "calendar_today", label: "ตารางเรียน" },
       { href: "/member/results", icon: "fact_check", label: "ผลการเรียน" },
+      { href: "/member/activity-transcript", icon: "history_edu", label: "Activity Transcript" },
+      { href: "/member/pathway", icon: "route", label: "เส้นทางการเรียน" },
     ],
   },
   {

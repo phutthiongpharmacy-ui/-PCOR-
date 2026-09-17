@@ -76,6 +76,7 @@ describe("member shell", () => {
     ["/member/registration", "สถานะการลงทะเบียน"],
     ["/member/registration/courses", "ลงทะเบียนเรียน"],
     ["/member/results", "ผลการประเมินรายวิชา"],
+    ["/member/activity-transcript", "Activity Transcript"],
     ["/member/finance", "การชำระเงิน"],
     ["/member/finance/channels", "ช่องทางการชำระเงิน"],
     ["/member/requests", "คำร้องของฉัน"],
@@ -138,7 +139,11 @@ describe("member shell", () => {
     expect(screen.queryByRole("link", { name: /สมัครสอบ/ })).toBeNull();
     const schedule = screen.getAllByRole("link", { name: /ตารางเรียน/ })[0];
     const results = screen.getAllByRole("link", { name: /ผลการเรียน/ })[0];
+    const activityTranscript = screen.getAllByRole("link", { name: /Activity Transcript/ })[0];
+    const pathway = screen.getAllByRole("link", { name: /เส้นทางการเรียน/ })[0];
     expect(schedule.nextElementSibling).toBe(results);
+    expect(results.nextElementSibling).toBe(activityTranscript);
+    expect(activityTranscript.nextElementSibling).toBe(pathway);
     expect(screen.queryByText(/ผู้เข้ารับการฝึกอบรม|Student|บทบาท/)).toBeNull();
     expect(screen.queryByRole("button", { name: "ออกจากระบบ" })).toBeNull();
     const memberNavigations = screen.getAllByRole("navigation", { name: "เมนูสมาชิก" });
