@@ -33,7 +33,7 @@ export function ActivityYearSelector({
             เลือกปีเพื่อดูเงื่อนไขและกิจกรรมที่บันทึกไว้
           </p>
         </div>
-        <Badge variant="neutral">แสดงผลอย่างเดียว</Badge>
+        <Badge variant="info">เพิ่มกิจกรรมได้ด้วยตนเอง</Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:grid-cols-4">

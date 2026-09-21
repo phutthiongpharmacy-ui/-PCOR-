@@ -6,18 +6,42 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { MockDbProvider } from "@/providers/mock-db-provider";
+import { ORGANISATIONS } from "@/roles/shared/features/roles/access-model";
+import { PORTAL_SESSION_KEY } from "@/roles/shared/features/roles/mock-login";
 
 import MemberActivityTranscriptPage from "./MemberActivityTranscriptPage";
 
 afterEach(cleanup);
 
+beforeEach(() => {
+  window.localStorage.clear();
+  window.localStorage.setItem(PORTAL_SESSION_KEY, JSON.stringify({
+    role: "student",
+    displayName: "ภก. สมชาย ใจดี",
+    signedInAt: "2026-09-21T01:00:00.000Z",
+    userId: "วภท-2568-001",
+    organisation: ORGANISATIONS.siriraj,
+    resourceScopes: ["student:self"],
+  }));
+});
+
+function renderPage() {
+  return render(
+    <MockDbProvider>
+      <MemberActivityTranscriptPage />
+    </MockDbProvider>,
+  );
+}
+
 describe("MemberActivityTranscriptPage", () => {
-  it("opens on the current training year and shows verified-only requirement progress", () => {
-    render(<MemberActivityTranscriptPage />);
+  it("opens on the current training year and shows verified-only requirement progress", async () => {
+    renderPage();
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Activity Transcript" }),
+      await screen.findByRole("heading", { level: 1, name: "Activity Transcript" }),
     ).toBeTruthy();
 
     const currentYear = screen.getByRole("button", {
@@ -34,14 +58,15 @@ describe("MemberActivityTranscriptPage", () => {
     expect(journalProgress.value).toBe(2);
     expect(journalProgress.max).toBe(6);
 
-    expect(screen.getByText(/แสดงผลอย่างเดียว/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /เพิ่มกิจกรรม/ })).toBeNull();
+    expect(screen.getByText(/เพิ่มกิจกรรมได้ด้วยตนเอง/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /เพิ่มกิจกรรม/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /แก้ไขกิจกรรม/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /บันทึกกิจกรรม/ })).toBeNull();
   });
 
-  it("switches training years while retaining requirements and a clear empty state", () => {
-    render(<MemberActivityTranscriptPage />);
+  it("switches training years while retaining requirements and a clear empty state", async () => {
+    renderPage();
+    await screen.findByRole("heading", { level: 1, name: "Activity Transcript" });
 
     const yearOne = screen.getByRole("button", {
       name: /^ปีการฝึกอบรม 1/,
@@ -75,8 +100,9 @@ describe("MemberActivityTranscriptPage", () => {
     ).toBeTruthy();
   });
 
-  it("filters year 2 activities by category, status, and search and can reset them", () => {
-    render(<MemberActivityTranscriptPage />);
+  it("filters year 2 activities by category, status, and search and can reset them", async () => {
+    renderPage();
+    await screen.findByRole("heading", { level: 1, name: "Activity Transcript" });
 
     const [activityList] = screen.getAllByRole("region", {
       name: "รายการกิจกรรม",
@@ -118,7 +144,8 @@ describe("MemberActivityTranscriptPage", () => {
   });
 
   it("opens a read-only detail dialog with evidence and verification context", async () => {
-    render(<MemberActivityTranscriptPage />);
+    renderPage();
+    await screen.findByRole("heading", { level: 1, name: "Activity Transcript" });
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -146,5 +173,46 @@ describe("MemberActivityTranscriptPage", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "ปิด" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("lets the signed-in student submit only their own activity with evidence", async () => {
+    renderPage();
+    await screen.findByRole("heading", { level: 1, name: "Activity Transcript" });
+
+    fireEvent.click(screen.getByRole("button", { name: /เพิ่มกิจกรรม/ }));
+    const dialog = screen.getByRole("dialog");
+    const evidenceButton = within(dialog).getByRole("button", {
+      name: "เลือกไฟล์แนบหลักฐาน",
+    });
+    expect(evidenceButton).toBeTruthy();
+    expect(within(evidenceButton).getByText("attach_file")).toBeTruthy();
+    fireEvent.change(within(dialog).getByLabelText("ชื่อกิจกรรม *"), {
+      target: { value: "สัมมนาการดูแลผู้ป่วยสูงอายุ" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("วันที่ทำกิจกรรม *"), {
+      target: { value: "2026-09-20" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("บทบาทของผู้เรียน *"), {
+      target: { value: "ผู้นำเสนอ" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("หน่วยงาน / สถานที่ *"), {
+      target: { value: "มหาวิทยาลัยมหิดล" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("รายละเอียด *"), {
+      target: { value: "นำเสนอแนวทางติดตามความปลอดภัยจากการใช้ยา" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("แนบหลักฐาน *"), {
+      target: { files: [new File(["proof"], "seminar-proof.pdf", { type: "application/pdf" })] },
+    });
+    expect(
+      within(dialog).getByRole("button", {
+        name: "เปลี่ยนไฟล์แนบหลักฐาน ปัจจุบัน seminar-proof.pdf",
+      }),
+    ).toBeTruthy();
+    fireEvent.submit(dialog.querySelector("form")!);
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByText("สัมมนาการดูแลผู้ป่วยสูงอายุ")).toBeTruthy();
+    expect(screen.getAllByText("บันทึกโดยผู้เรียน").length).toBeGreaterThan(0);
   });
 });

@@ -2,6 +2,8 @@ import type {
   CourseProposal,
   CourseProposalActor,
   CourseProposalDecision,
+  CurriculumCreditStructure,
+  CurriculumProposalDetails,
 } from "./model";
 
 export const COURSE_PROPOSAL_RESOURCE_SCOPE = "course:proposal";
@@ -17,6 +19,99 @@ function validCredits(value: number) {
     throw new Error("Course proposal credits must be greater than zero");
   }
   return value;
+}
+
+function nonNegativeCredit(value: number, label: string) {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be zero or greater`);
+  }
+  return value;
+}
+
+function normalizeCurriculumCredits(
+  credits: CurriculumCreditStructure,
+): CurriculumCreditStructure {
+  const normalized = {
+    total: validCredits(credits.total),
+    theory: nonNegativeCredit(credits.theory, "Theory credits"),
+    laboratory: nonNegativeCredit(credits.laboratory, "Laboratory credits"),
+    professionalPractice: nonNegativeCredit(
+      credits.professionalPractice,
+      "Professional-practice credits",
+    ),
+    researchOrProject: nonNegativeCredit(
+      credits.researchOrProject,
+      "Research or project credits",
+    ),
+  };
+  const allocated = normalized.theory + normalized.laboratory +
+    normalized.professionalPractice + normalized.researchOrProject;
+  if (allocated > normalized.total) {
+    throw new Error("Curriculum credit categories cannot exceed total credits");
+  }
+  return normalized;
+}
+
+function requiredDate(value: string, label: string) {
+  const normalized = requiredText(value, label);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized) || !Number.isFinite(Date.parse(normalized))) {
+    throw new Error(`${label} is invalid`);
+  }
+  return normalized;
+}
+
+export function normalizeCurriculumProposalDetails(
+  value: CurriculumProposalDetails,
+): CurriculumProposalDetails {
+  const announcementDate = requiredDate(value.announcementDate, "Announcement date");
+  const effectiveDate = requiredDate(value.effectiveDate, "Effective date");
+  if (effectiveDate < announcementDate) {
+    throw new Error("Effective date cannot be earlier than announcement date");
+  }
+  return {
+    collegeOrSpecialty: requiredText(value.collegeOrSpecialty, "College or specialty"),
+    curriculumNameTh: requiredText(value.curriculumNameTh, "Thai curriculum name"),
+    curriculumNameEn: requiredText(value.curriculumNameEn, "English curriculum name"),
+    qualificationNameTh: requiredText(value.qualificationNameTh, "Thai qualification name"),
+    qualificationNameEn: requiredText(value.qualificationNameEn, "English qualification name"),
+    responsibleUnit: requiredText(value.responsibleUnit, "Responsible unit"),
+    mainInstitution: requiredText(value.mainInstitution, "Main institution"),
+    affiliatedInstitutions: value.affiliatedInstitutions.trim(),
+    philosophyAndObjectives: requiredText(
+      value.philosophyAndObjectives,
+      "Curriculum philosophy and objectives",
+    ),
+    trainingDuration: requiredText(value.trainingDuration, "Training duration"),
+    educationManagementSystem: requiredText(
+      value.educationManagementSystem,
+      "Education management system",
+    ),
+    credits: normalizeCurriculumCredits(value.credits),
+    relatedShortCourses: value.relatedShortCourses.trim(),
+    hourCalculationRule: requiredText(value.hourCalculationRule, "Hour calculation rule"),
+    applicantQualifications: requiredText(
+      value.applicantQualifications,
+      "Applicant qualifications",
+    ),
+    selectionMethod: requiredText(value.selectionMethod, "Selection method"),
+    assessmentMethod: requiredText(value.assessmentMethod, "Assessment method"),
+    completionCriteria: requiredText(value.completionCriteria, "Completion criteria"),
+    trainingProviderQualifications: requiredText(
+      value.trainingProviderQualifications,
+      "Training provider qualifications",
+    ),
+    trainingSiteQualifications: requiredText(
+      value.trainingSiteQualifications,
+      "Training site qualifications",
+    ),
+    notes: value.notes.trim(),
+    pharmacyCouncilAnnouncementNo: requiredText(
+      value.pharmacyCouncilAnnouncementNo,
+      "Pharmacy Council announcement number",
+    ),
+    announcementDate,
+    effectiveDate,
+  };
 }
 
 function validDecision(value: CourseProposalDecision) {
@@ -41,6 +136,7 @@ export function createCourseProposal(input: {
   courseTitle: string;
   credits: number;
   rationale: string;
+  curriculum?: CurriculumProposalDetails;
   evidenceReference?: string;
   at?: string;
 }): CourseProposal {
@@ -57,6 +153,9 @@ export function createCourseProposal(input: {
     courseTitle: requiredText(input.courseTitle, "Course proposal title"),
     credits: validCredits(input.credits),
     rationale: reason,
+    ...(input.curriculum
+      ? { curriculum: normalizeCurriculumProposalDetails(input.curriculum) }
+      : {}),
     status: "submitted",
     submittedAt: at,
     updatedAt: at,
@@ -79,6 +178,7 @@ export function resubmitCourseProposalRecord(input: {
   courseTitle: string;
   credits: number;
   rationale: string;
+  curriculum?: CurriculumProposalDetails;
   reason: string;
   evidenceReference?: string;
   at?: string;
@@ -96,6 +196,11 @@ export function resubmitCourseProposalRecord(input: {
     courseTitle: requiredText(input.courseTitle, "Course proposal title"),
     credits: validCredits(input.credits),
     rationale: requiredText(input.rationale, "Course proposal rationale"),
+    ...(input.curriculum
+      ? { curriculum: normalizeCurriculumProposalDetails(input.curriculum) }
+      : input.proposal.curriculum
+        ? { curriculum: input.proposal.curriculum }
+        : {}),
     status: "submitted",
     updatedAt: at,
     history: [...input.proposal.history, {

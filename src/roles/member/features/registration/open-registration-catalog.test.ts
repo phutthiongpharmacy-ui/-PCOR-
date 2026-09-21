@@ -204,4 +204,16 @@ describe("open registration catalog", () => {
       && course.room.length > 8
     ))).toBe(true);
   });
+
+  it("attaches the mock syllabus only to the intended CPhT 301 offering", () => {
+    const result = buildOpenRegistrationCourses(seededOfferings, institutions);
+    const cphT301 = result.find((course) => course.offering.id === "offering-vpt-301");
+
+    expect(cphT301?.syllabus).toEqual({
+      fileName: "CPhT 301-syllabus.pdf",
+      url: "/documents/syllabi/mock-course-syllabus.pdf",
+    });
+    expect(result.filter((course) => course.syllabus).map((course) => course.offering.id))
+      .toEqual(["offering-vpt-301"]);
+  });
 });

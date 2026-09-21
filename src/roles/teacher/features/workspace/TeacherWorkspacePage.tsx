@@ -207,7 +207,7 @@ export default function TeacherWorkspacePage({
         eyebrow="ขอบเขตรายวิชาที่รับผิดชอบ"
         title="รายวิชาที่ได้รับมอบหมาย"
         description="ตอบรับคำเชิญและเปิดดูข้อมูลได้เฉพาะรายวิชาที่อยู่ในขอบเขตของบัญชีนี้"
-        action={{ href: "/teacher/course-proposals", label: "สร้างคำขอรายวิชา", icon: "post_add" }}
+        action={{ href: "/teacher/course-proposals/new", label: "เสนอหลักสูตรใหม่", icon: "post_add" }}
       />
       {actor ? <TeacherCourseHandoffPanels actor={actor} /> : null}
       <div className="grid gap-4 lg:grid-cols-2">

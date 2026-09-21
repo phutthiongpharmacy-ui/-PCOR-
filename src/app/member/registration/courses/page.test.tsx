@@ -28,7 +28,12 @@ vi.mock("@/roles/member/features/registration/open-registration-catalog", () => 
   buildOpenRegistrationCourses: () => [1, 2, 3, 4, 5].map((id) => ({
     definition: { id: `course-${id}`, code: `TEST-${id}`, collegeCode: "CPHC", titleTh: `วิชาทดสอบ ${id}`, credits: 4, capacity: 10, enrolled: id === 5 ? 10 : 0 },
     offering: { id: `offering-${id}`, institutionId: "institution-test", term: "1/2569" },
-    universityName: "สถาบันทดสอบ", institutionName: "สถาบันทดสอบ", academicYear: "2569", term: "1", schedule: "วันเสาร์", room: "101",
+    universityName: id === 1 ? "มหาวิทยาลัยมหิดล" : "สถาบันทดสอบ",
+    institutionName: id === 1 ? "สถาบันฝึกอบรมโรงพยาบาลศิริราช" : "สถาบันทดสอบ",
+    ...(id === 1
+      ? { syllabus: { fileName: "CPhT 301-syllabus.pdf", url: "/documents/syllabi/mock-course-syllabus.pdf" } }
+      : {}),
+    academicYear: "2569", term: "1", schedule: "วันเสาร์", room: "101",
   })),
   filterOpenRegistrationCourses: (courses: unknown[]) => courses,
   openRegistrationFilterOptions: () => ({ universities: [], academicYears: [], terms: [] }),
@@ -41,6 +46,21 @@ function courseCard(number: number) {
 }
 
 describe("repeatable course registration interactions", () => {
+  it("shows the Mahidol owner consistently and links to the mock syllabus PDF", () => {
+    render(<CourseRegistrationPage />);
+
+    fireEvent.click(courseCard(1).getByRole("button", { name: "ดูรายละเอียด" }));
+
+    expect(courseCard(1).getByText("หน่วยงานผู้ดูแล")).toBeTruthy();
+    expect(courseCard(1).getAllByText("มหาวิทยาลัยมหิดล")).toHaveLength(2);
+    expect(courseCard(1).queryByText("สถาบันฝึกอบรมโรงพยาบาลศิริราช")).toBeNull();
+    expect(courseCard(1).getByRole("link", { name: /เปิด Syllabus PDF/ }).getAttribute("href"))
+      .toBe("/documents/syllabi/mock-course-syllabus.pdf");
+
+    fireEvent.click(courseCard(2).getByRole("button", { name: "ดูรายละเอียด" }));
+    expect(courseCard(2).queryByRole("link", { name: /เปิด Syllabus PDF/ })).toBeNull();
+  });
+
   it("can select, confirm, remove and reselect repeatedly without writing registrations", () => {
     render(<CourseRegistrationPage />);
     expect(screen.queryByRole("button", { name: /โหมดสาธิต/ })).toBeNull();

@@ -22,6 +22,10 @@ export type OpenRegistrationCourse = {
   offering: CourseOffering;
   institutionName: string;
   universityName: string;
+  syllabus?: {
+    fileName: string;
+    url: string;
+  };
   academicYear: string;
   term: string;
   schedule: string;
@@ -50,6 +54,13 @@ const activeNormalCourseByCode = new Map(
     ))
     .map((definition) => [definition.code, definition]),
 );
+
+const syllabusByOfferingId: Readonly<Record<string, OpenRegistrationCourse["syllabus"]>> = {
+  "offering-vpt-301": {
+    fileName: "CPhT 301-syllabus.pdf",
+    url: "/documents/syllabi/mock-course-syllabus.pdf",
+  },
+};
 
 function parseAcademicTerm(value: string) {
   const match = /^\s*(\d+)\s*\/\s*(\d{4})\s*$/.exec(value);
@@ -91,6 +102,9 @@ export function buildOpenRegistrationCourses(
       offering,
       institutionName: institution.name,
       universityName,
+      ...(syllabusByOfferingId[offering.id]
+        ? { syllabus: syllabusByOfferingId[offering.id] }
+        : {}),
       academicYear: academicTerm.academicYear,
       term: academicTerm.term,
       schedule: scheduleDetails

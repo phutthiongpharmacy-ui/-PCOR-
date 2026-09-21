@@ -19,7 +19,7 @@ import { SegmentedFilterButton, SegmentedFilterGroup } from "@/components/ui/seg
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploadField } from "@/roles/shared/components/forms/FileUploadField";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
-import { registrationData, studentDetailData } from "@/roles/shared/data";
+import { studentDetailData } from "@/roles/shared/data";
 import { formatCourseCode } from "@/roles/shared/data/college-directory";
 import { formatFileSize } from "@/roles/shared/features/file-metadata";
 import { HandwrittenSignaturePreview } from "@/roles/shared/features/requests/HandwrittenSignature";
@@ -58,8 +58,6 @@ const FILTERS: readonly { id: RequestFilter; label: string }[] = [
   { id: "signed", label: "ลงนามแล้ว" },
   { id: "rejected", label: "ไม่อนุมัติ" },
 ];
-
-const CURRENT_TERM = "1/2569";
 
 function makeCategoryDocuments(category: RequestCategoryDefinition): RequestDocument[] {
   return (category.documents ?? []).map((requirement) => ({
@@ -295,7 +293,6 @@ export default function MemberRequestsPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [applicantNote, setApplicantNote] = useState("");
   const [documents, setDocuments] = useState<RequestDocument[]>([]);
-  const [selectedCourseCodes, setSelectedCourseCodes] = useState<string[]>([]);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
 
@@ -321,7 +318,6 @@ export default function MemberRequestsPage() {
     setErrors({});
     setApplicantNote("");
     setDocuments([]);
-    setSelectedCourseCodes([]);
     setEditingRequestId(null);
   };
 
@@ -338,11 +334,6 @@ export default function MemberRequestsPage() {
     setErrors({});
     setApplicantNote("");
     setDocuments(makeCategoryDocuments(nextCategory));
-    setSelectedCourseCodes(
-      registrationData.courses
-        .filter((course) => course.enrollmentStatus === "registered")
-        .map((course) => course.code),
-    );
   };
 
   const startRevision = (request: MockRequest) => {
@@ -367,7 +358,6 @@ export default function MemberRequestsPage() {
         reviewStatus: stored?.file ? "pending" : "not_applicable",
       };
     }));
-    setSelectedCourseCodes(request.courses.map((course) => course.code));
     setStep(2);
     setDetailId(null);
     window.setTimeout(() => setIsCreateOpen(true), 150);
@@ -437,14 +427,6 @@ export default function MemberRequestsPage() {
     });
   };
 
-  const toggleCourse = (courseCode: string) => {
-    setSelectedCourseCodes((current) =>
-      current.includes(courseCode)
-        ? current.filter((code) => code !== courseCode)
-        : [...current, courseCode],
-    );
-  };
-
   const goNext = () => {
     if (step === 1) {
       if (!category) return;
@@ -461,6 +443,16 @@ export default function MemberRequestsPage() {
       setStep(2);
       return;
     }
+    const editingRequest = editingRequestId
+      ? memberRequests.find((current) => current.id === editingRequestId)
+      : undefined;
+    if (
+      editingRequestId
+      && (!editingRequest || !canTransitionRequest(editingRequest.status, "staff_review", "student"))
+    ) {
+      toast.error("สถานะคำร้องเปลี่ยนแล้ว กรุณาปิดแบบฟอร์มและลองอีกครั้ง");
+      return;
+    }
     const now = new Date();
     const nowIso = now.toISOString();
     const identity = currentMemberPassport.identity;
@@ -473,15 +465,6 @@ export default function MemberRequestsPage() {
       }))
       .filter((field) => field.value);
     const headline = fieldEntries[0]?.value;
-    const courseSnapshots = registrationData.courses
-      .filter((course) => selectedCourseCodes.includes(course.code))
-      .map((course) => ({
-        code: course.code,
-        title: course.title,
-        credits: course.credits,
-        term: CURRENT_TERM,
-        schedule: course.schedule,
-      }));
     const normalizedDocuments = documents.map((document) => ({
       ...document,
       file: document.file ? { ...document.file } : undefined,
@@ -506,7 +489,7 @@ export default function MemberRequestsPage() {
       },
       fields: fieldEntries,
       applicantNote: note || undefined,
-      courses: courseSnapshots,
+      courses: [],
       documents: normalizedDocuments,
       comments: [],
       events: [{
@@ -518,12 +501,7 @@ export default function MemberRequestsPage() {
       }],
       progress: progressForStatus("staff_review"),
     };
-    if (editingRequestId) {
-      const editingRequest = memberRequests.find((current) => current.id === editingRequestId);
-      if (!editingRequest || !canTransitionRequest(editingRequest.status, "staff_review", "student")) {
-        toast.error("สถานะคำร้องเปลี่ยนแล้ว กรุณาปิดแบบฟอร์มและลองอีกครั้ง");
-        return;
-      }
+    if (editingRequestId && editingRequest) {
       const noteChanged = Boolean(note) && note !== (editingRequest.applicantNote ?? "").trim();
       updateRequest(editingRequestId, (current) => ({
         ...current,
@@ -533,7 +511,6 @@ export default function MemberRequestsPage() {
         status: "staff_review",
         fields: request.fields,
         applicantNote: request.applicantNote,
-        courses: request.courses,
         documents: request.documents,
         comments: [
           ...current.comments,
@@ -737,29 +714,6 @@ export default function MemberRequestsPage() {
                     />
                   ))}
                 </div>
-                <section className="space-y-3 border-t border-border pt-4" aria-labelledby="request-course-picker-heading">
-                  <div>
-                    <h3 id="request-course-picker-heading" className="text-xs font-semibold text-foreground">รายวิชาที่เกี่ยวข้อง</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">ระบบดึงรายวิชาที่ลงทะเบียนไว้ให้อัตโนมัติ เลือกเฉพาะวิชาที่เกี่ยวข้องกับคำร้อง</p>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {registrationData.courses.map((course) => (
-                      <label key={course.code} className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border p-3 hover:bg-muted/50">
-                        <input
-                          type="checkbox"
-                          checked={selectedCourseCodes.includes(course.code)}
-                          onChange={() => toggleCourse(course.code)}
-                          className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
-                        />
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold text-foreground">{formatCourseCode(course.code)} · {course.title}</span>
-                          <span className="mt-0.5 block text-xs text-muted-foreground">{course.credits} หน่วยกิต · {course.schedule}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </section>
-
                 <div className="space-y-1.5 border-t border-border pt-4">
                   <label htmlFor="request-applicant-note" className="text-xs font-medium text-foreground">หมายเหตุจากผู้ยื่น</label>
                   <Textarea
@@ -824,16 +778,6 @@ export default function MemberRequestsPage() {
                       </div>
                     );
                   })}
-                  {selectedCourseCodes.length > 0 && (
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs text-muted-foreground">รายวิชาที่เกี่ยวข้อง</dt>
-                      <dd className="mt-1 space-y-1 text-sm font-medium text-foreground">
-                        {registrationData.courses
-                          .filter((course) => selectedCourseCodes.includes(course.code))
-                          .map((course) => <span key={course.code} className="block">{formatCourseCode(course.code)} · {course.title}</span>)}
-                      </dd>
-                    </div>
-                  )}
                   {applicantNote.trim() && (
                     <div className="sm:col-span-2">
                       <dt className="text-xs text-muted-foreground">หมายเหตุจากผู้ยื่น</dt>

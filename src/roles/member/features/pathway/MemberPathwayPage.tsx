@@ -98,7 +98,8 @@ const pathwayStagePositions = [
   { x: 9, className: "lg:left-[9%] lg:top-[68%]" },
 ] as const;
 
-const pathwayTrackPath = "M 90 66 H 910 C 970 66 970 204 910 204 H 90";
+const pathwayTurnControlX = 1020;
+const pathwayTrackPath = `M 90 66 H 910 C ${pathwayTurnControlX} 66 ${pathwayTurnControlX} 204 910 204 H 90`;
 
 function getPathwayProgressPath(stageIndex: number) {
   const lastIndex = pathwayStagePositions.length - 1;
@@ -109,7 +110,7 @@ function getPathwayProgressPath(stageIndex: number) {
     return `M 90 66 H ${target.x * 10}`;
   }
 
-  return `M 90 66 H 910 C 970 66 970 204 910 204 H ${target.x * 10}`;
+  return `M 90 66 H 910 C ${pathwayTurnControlX} 66 ${pathwayTurnControlX} 204 910 204 H ${target.x * 10}`;
 }
 
 function RequirementRow({ requirement }: { requirement: PathwayRequirement }) {
@@ -125,9 +126,11 @@ function RequirementRow({ requirement }: { requirement: PathwayRequirement }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-medium text-foreground">{requirement.label}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          {requirement.detail}
-        </p>
+        {requirement.detail !== config.label ? (
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            {requirement.detail}
+          </p>
+        ) : null}
       </div>
       <span className={cn("shrink-0 text-xs font-medium", config.className)}>
         {config.label}
@@ -161,43 +164,49 @@ function CurriculumItemCard({ item }: { item: StageCurriculumItem }) {
       </div>
 
       <h4 className="mt-3 font-semibold leading-snug text-foreground">{item.titleTh}</h4>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.titleEn}</p>
-      <p className="mt-3 text-sm leading-relaxed text-foreground/80">{item.description}</p>
+      <details className="group mt-3 border-t border-border pt-3">
+        <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-2 text-sm font-semibold text-primary outline-none hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+          <span>ดูรายละเอียด</span>
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined text-xl text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
+          >
+            expand_more
+          </span>
+        </summary>
+        <div className="space-y-3 px-2 pb-1 pt-3">
+          <p className="text-xs leading-relaxed text-muted-foreground">{item.titleEn}</p>
+          <p className="text-sm leading-relaxed text-foreground/80">{item.description}</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span>{item.officialCategory}</span>
+            <span>{item.creditBreakdown}</span>
+            <span>{item.allocatedHours ?? item.hours}</span>
+          </div>
 
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
-        <span>{item.officialCategory}</span>
-        <span>{item.creditBreakdown}</span>
-        <span>{item.allocatedHours ?? item.hours}</span>
-      </div>
+          {item.note ? (
+            <p className="rounded-xl border border-info-border bg-info-soft px-3 py-2 text-xs leading-relaxed text-info-on-soft">
+              {item.note}
+            </p>
+          ) : null}
 
-      {item.note ? (
-        <p className="mt-3 rounded-xl border border-info-border bg-info-soft px-3 py-2 text-xs leading-relaxed text-info-on-soft">
-          {item.note}
-        </p>
-      ) : null}
-
-      {item.options?.length ? (
-        <details className="group mt-3 rounded-xl border border-border bg-card">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
-            <span>เลือกฝึก 1 ด้านจาก {item.options.length} ด้าน</span>
-            <span
-              aria-hidden="true"
-              className="material-symbols-outlined text-xl text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
-            >
-              expand_more
-            </span>
-          </summary>
-          <ul className="grid gap-2 border-t border-border p-3 sm:grid-cols-2">
-            {item.options.map((option) => (
-              <li key={option.code} className="rounded-lg bg-surface-container-low px-3 py-2">
-                <p className="font-mono text-xs font-semibold text-primary">{option.code}</p>
-                <p className="mt-1 text-sm font-medium text-foreground">{option.titleTh}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{option.titleEn}</p>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
+          {item.options?.length ? (
+            <div className="rounded-xl border border-border bg-card">
+              <p className="px-3 py-2.5 text-sm font-semibold text-foreground">
+                เลือกฝึก 1 ด้านจาก {item.options.length} ด้าน
+              </p>
+              <ul className="grid gap-2 border-t border-border p-3 sm:grid-cols-2">
+                {item.options.map((option) => (
+                  <li key={option.code} className="rounded-lg bg-surface-container-low px-3 py-2">
+                    <p className="font-mono text-xs font-semibold text-primary">{option.code}</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">{option.titleTh}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{option.titleEn}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      </details>
     </li>
   );
 }
@@ -216,30 +225,22 @@ function StageCurriculumSection({ stage }: { stage: PharmacotherapyPathwayStage 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h3 id="stage-curriculum-title" className="text-sm font-semibold text-foreground">
-            รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร
+            รายวิชาในขั้นนี้
           </h3>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            รายวิชาที่ต้องเรียนหรือเลือกตามข้อกำหนดของ {stage.shortLabel}
-          </p>
         </div>
         <p className="text-sm font-semibold tabular-nums text-foreground">
-          {curriculum.length} {curriculum.length === 1 ? "องค์ประกอบ" : "รายวิชา"} · {allocatedCredits} หน่วยกิตในปีนี้
+          {curriculum.length} {curriculum.length === 1 ? "รายการ" : "รายวิชา"} · {allocatedCredits} หน่วยกิต
         </p>
       </div>
 
       <ul
-        aria-label={`รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ${stage.shortLabel}`}
+        aria-label={`รายวิชาในขั้นนี้ ${stage.shortLabel}`}
         className="mt-4 grid gap-3 xl:grid-cols-2"
       >
         {curriculum.map((item) => (
           <CurriculumItemCard key={`${stage.id}-${item.componentId}`} item={item} />
         ))}
       </ul>
-
-      <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-        <span aria-hidden="true" className="material-symbols-outlined mt-0.5 text-base">description</span>
-        อ้างอิงคู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59–68
-      </p>
     </section>
   );
 }
@@ -275,9 +276,6 @@ function PathwayStagePreview({
         <p className="mt-3 font-heading text-base font-bold leading-snug text-foreground">
           {stage.title}
         </p>
-        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-          {stage.description}
-        </p>
 
         <dl className="mt-3 grid grid-cols-2 gap-2">
           <div className="rounded-xl bg-surface-container-low/90 px-3 py-2.5">
@@ -295,24 +293,6 @@ function PathwayStagePreview({
             </dd>
           </div>
         </dl>
-
-        {stage.unlocks ? (
-          <div className="mt-3 flex gap-2 rounded-xl bg-brand-soft/80 px-3 py-2.5 text-brand-on-soft">
-            <span aria-hidden="true" className="material-symbols-outlined mt-0.5 text-base">
-              key
-            </span>
-            <p className="line-clamp-2 text-xs leading-relaxed">
-              <span className="font-semibold">ปลดล็อกถัดไป:</span> {stage.unlocks}
-            </p>
-          </div>
-        ) : null}
-
-        <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-primary">
-          <span aria-hidden="true" className="material-symbols-outlined text-sm">
-            touch_app
-          </span>
-          คลิกเพื่อดูรายละเอียดทั้งหมด
-        </p>
         <Tooltip.Arrow className="fill-popover/90" width={16} height={8} />
       </Tooltip.Content>
     </Tooltip.Portal>
@@ -459,9 +439,9 @@ export default function MemberPathwayPage() {
   return (
     <PageShell size="app" className="space-y-6">
       <WorkspaceHeader
-        eyebrow="Learning Pathway"
+        eyebrow="วุฒิบัตรเภสัชบำบัด"
         title="เส้นทางการเรียนเภสัชบำบัด 4 ปี"
-        description={pharmacotherapyPathwaySummary.programName}
+        description="ดูความก้าวหน้า เงื่อนไข และรายวิชาในแต่ละปี"
       />
 
       <Card className="border-border">
@@ -524,18 +504,12 @@ export default function MemberPathwayPage() {
       </Card>
 
       <Card className="border-border">
-        <CardHeader className="gap-3 lg:grid-cols-[1fr_auto]">
+        <CardHeader>
           <div>
             <CardTitle className="text-lg font-bold">แผนการเรียนและจุดประเมิน</CardTitle>
             <CardDescription className="mt-1">
-              เริ่มจากจุด 01 แล้วตามเส้นทาง วางเมาส์หรือกด Tab เพื่อดูสรุป และเลือกเพื่อดูรายละเอียดทั้งหมด
+              เลือกแต่ละขั้นเพื่อดูเงื่อนไขและรายวิชา
             </CardDescription>
-          </div>
-          <div aria-label="คำอธิบายสถานะ" className="flex flex-wrap items-center gap-2 lg:justify-end">
-            <Badge variant="success">ผ่านแล้ว</Badge>
-            <Badge variant="info">กำลังศึกษา</Badge>
-            <Badge variant="neutral">ยังไม่เริ่ม</Badge>
-            <Badge variant="warning">ยังไม่ปลดล็อก</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -603,24 +577,14 @@ export default function MemberPathwayPage() {
               ) : null}
 
               {selectedStage.unlocks ? (
-                <div className="rounded-xl border border-brand-border bg-brand-soft p-4 text-brand-on-soft">
-                  <div className="flex items-start gap-3">
-                    <span aria-hidden="true" className="material-symbols-outlined mt-0.5 text-xl">
-                      key
-                    </span>
-                    <div>
-                      <p className="text-xs font-semibold">เมื่อผ่านขั้นนี้จะปลดล็อก</p>
-                      <p className="mt-1 text-sm leading-relaxed">{selectedStage.unlocks}</p>
-                    </div>
-                  </div>
+                <div className="flex items-start gap-2 rounded-xl border border-brand-border bg-brand-soft p-3 text-sm text-brand-on-soft">
+                  <span aria-hidden="true" className="material-symbols-outlined mt-0.5 text-lg">
+                    key
+                  </span>
+                  <p className="leading-relaxed">
+                    <span className="font-semibold">ขั้นถัดไป:</span> {selectedStage.unlocks}
+                  </p>
                 </div>
-              ) : null}
-
-              {selectedStage.note ? (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  <span className="font-semibold text-foreground">หมายเหตุ:</span>{" "}
-                  {selectedStage.note}
-                </p>
               ) : null}
             </div>
 
@@ -637,11 +601,6 @@ export default function MemberPathwayPage() {
           </CardContent>
         </Card>
       </section>
-
-      <p className="px-1 text-xs leading-relaxed text-muted-foreground">
-        อ้างอิงโครงสร้าง 133 หน่วยกิตจากไฟล์เปรียบเทียบหลักสูตร: ปี 1 จำนวน 37 หน่วยกิต
-        และปี 2–4 ปีละ 32 หน่วยกิต เกณฑ์สอบบางส่วนอ้างประกาศปี 2559 จึงควรยืนยันกับเจ้าของหลักสูตรก่อนนำไปใช้เป็นกฎล็อกในระบบจริง
-      </p>
     </PageShell>
   );
 }

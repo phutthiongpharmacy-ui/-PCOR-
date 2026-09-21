@@ -176,6 +176,48 @@ export interface CourseProposalReview {
   evidenceReference?: string;
 }
 
+export interface CurriculumCreditStructure {
+  total: number;
+  theory: number;
+  laboratory: number;
+  professionalPractice: number;
+  researchOrProject: number;
+}
+
+/**
+ * Curriculum-level information submitted with a proposal.
+ *
+ * The legacy course summary fields on `CourseProposal` intentionally remain so
+ * previously stored prototypes can still be read. New proposals carry this
+ * structured payload and use the legacy fields as a compact searchable summary.
+ */
+export interface CurriculumProposalDetails {
+  collegeOrSpecialty: string;
+  curriculumNameTh: string;
+  curriculumNameEn: string;
+  qualificationNameTh: string;
+  qualificationNameEn: string;
+  responsibleUnit: string;
+  mainInstitution: string;
+  affiliatedInstitutions: string;
+  philosophyAndObjectives: string;
+  trainingDuration: string;
+  educationManagementSystem: string;
+  credits: CurriculumCreditStructure;
+  relatedShortCourses: string;
+  hourCalculationRule: string;
+  applicantQualifications: string;
+  selectionMethod: string;
+  assessmentMethod: string;
+  completionCriteria: string;
+  trainingProviderQualifications: string;
+  trainingSiteQualifications: string;
+  notes: string;
+  pharmacyCouncilAnnouncementNo: string;
+  announcementDate: string;
+  effectiveDate: string;
+}
+
 export interface CourseProposal {
   id: string;
   proposerId: string;
@@ -185,6 +227,7 @@ export interface CourseProposal {
   courseTitle: string;
   credits: number;
   rationale: string;
+  curriculum?: CurriculumProposalDetails;
   status: CourseProposalStatus;
   submittedAt: string;
   updatedAt: string;

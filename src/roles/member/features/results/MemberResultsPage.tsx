@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { SegmentedFilterButton, SegmentedFilterGroup } from "@/components/ui/segmented-filter";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMockDb } from "@/providers/mock-db-provider";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
@@ -11,24 +12,13 @@ import { EmptyState, LoadingState } from "@/roles/shared/components/workspace/Wo
 import { formatCollegeCourseCode } from "@/roles/shared/data/college-directory";
 import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
 
-const academicYears = ["2569", "2568", "2567", "2566"];
-const termOptions = [
-  { value: "1", label: "ภาคต้น" },
-  { value: "2", label: "ภาคปลาย" },
-  { value: "3", label: "ภาคฤดูร้อน" },
-  { value: "all", label: "ทั้งหมด" },
-] as const;
-const resultTermGroups = [
-  { value: "3", title: "ภาคฤดูร้อน" },
-  { value: "1", title: "ภาคต้น" },
-  { value: "2", title: "ภาคปลาย" },
-] as const;
+type ResultViewMode = "all" | "year";
 
 export default function MemberResultsPage() {
   const db = useMockDb();
   const { session, isReady } = usePortalSession();
-  const [academicYear, setAcademicYear] = useState(academicYears[0]);
-  const [term, setTerm] = useState<(typeof termOptions)[number]["value"]>("all");
+  const [viewMode, setViewMode] = useState<ResultViewMode>("all");
+  const [academicYear, setAcademicYear] = useState("");
   const [queryDraft, setQueryDraft] = useState("");
   const [query, setQuery] = useState("");
 
@@ -44,13 +34,18 @@ export default function MemberResultsPage() {
     const [termNumber, academicYear] = offering.term.split("/");
     return [{ result, offering, termNumber, academicYear }];
   });
+  const academicYears = [...new Set(resultRows.map((row) => row.academicYear))]
+    .filter(Boolean)
+    .sort((left, right) => right.localeCompare(left, "th", { numeric: true }));
+  const selectedAcademicYear = academicYears.includes(academicYear)
+    ? academicYear
+    : (academicYears[0] ?? "");
   const normalizedQuery = query.trim().toLocaleLowerCase("th-TH");
-  const visibleRows = resultRows.filter(({ offering, termNumber, academicYear: rowAcademicYear }) => {
+  const visibleRows = resultRows.filter(({ offering, academicYear: rowAcademicYear }) => {
     const matchesQuery = !normalizedQuery || `${offering.courseCode} ${formatCollegeCourseCode(offering.courseCode, offering.collegeCode)} ${offering.courseTitle}`
       .toLocaleLowerCase("th-TH")
       .includes(normalizedQuery);
-    return rowAcademicYear === academicYear
-      && (term === "all" || termNumber === term)
+    return (viewMode === "all" || rowAcademicYear === selectedAcademicYear)
       && matchesQuery;
   });
   const cumulativeCredits = resultRows.reduce((total, { result, offering }) => {
@@ -59,17 +54,16 @@ export default function MemberResultsPage() {
   const filteredCredits = visibleRows.reduce((total, { result, offering }) => {
     return result.currentValue === "S" ? total + offering.credits : total;
   }, 0);
-  const visibleResultGroups = resultTermGroups
-    .filter((group) => term === "all" || group.value === term)
-    .map((group) => ({
-      ...group,
-      rows: visibleRows.filter((row) => row.termNumber === group.value),
-    }))
-    .filter((group) => group.rows.length > 0);
+  const visibleResultGroups = [...new Set(visibleRows.map((row) => row.academicYear))]
+    .sort((left, right) => right.localeCompare(left, "th", { numeric: true }))
+    .map((year) => ({
+      year,
+      rows: visibleRows.filter((row) => row.academicYear === year),
+    }));
 
   const resetFilters = () => {
-    setAcademicYear(academicYears[0]);
-    setTerm("all");
+    setViewMode("all");
+    setAcademicYear(academicYears[0] ?? "");
     setQueryDraft("");
     setQuery("");
   };
@@ -78,9 +72,9 @@ export default function MemberResultsPage() {
     <PageShell size="full" className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="order-2 space-y-3 lg:order-1">
         {visibleResultGroups.map((group) => (
-          <Card key={group.value} className="gap-0 py-0">
+          <Card key={group.year} className="gap-0 py-0">
             <CardHeader className="border-b border-primary bg-primary py-4">
-              <CardTitle className="text-lg text-primary-foreground">{group.title} / {academicYear}</CardTitle>
+              <CardTitle className="text-lg text-primary-foreground">ปีการศึกษา {group.year}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto bg-card">
@@ -116,7 +110,7 @@ export default function MemberResultsPage() {
         {visibleResultGroups.length === 0 ? (
           <Card>
             <CardContent className="p-5">
-              <EmptyState title="ไม่พบผลการเรียน" description="ลองเปลี่ยนปีการศึกษา ภาคการศึกษา หรือคำค้นหา" />
+              <EmptyState title="ไม่พบผลการเรียน" description="ลองเปลี่ยนรูปแบบการแสดงผล ปีการศึกษา หรือคำค้นหา" />
             </CardContent>
           </Card>
         ) : null}
@@ -143,39 +137,36 @@ export default function MemberResultsPage() {
         <Card className="py-0">
           <CardContent className="space-y-4 p-4">
             <div>
-              <p className="mb-2 text-sm font-medium">ปีการศึกษา</p>
-              <div className="grid grid-cols-4 gap-2">
-                {academicYears.map((year) => (
-                  <Button
-                    key={year}
-                    type="button"
-                    size="sm"
-                    variant={academicYear === year ? "outline" : "secondary"}
-                    className={academicYear === year ? "border-primary px-2 text-primary" : "px-2"}
-                    onClick={() => setAcademicYear(year)}
-                  >
-                    {year}
-                  </Button>
-                ))}
-              </div>
+              <p className="mb-2 text-sm font-medium">แสดงผล</p>
+              <SegmentedFilterGroup aria-label="รูปแบบการแสดงผลผลการเรียน" className="grid grid-cols-2">
+                <SegmentedFilterButton active={viewMode === "all"} onClick={() => setViewMode("all")}>
+                  ทั้งหมด
+                </SegmentedFilterButton>
+                <SegmentedFilterButton active={viewMode === "year"} onClick={() => setViewMode("year")}>
+                  รายปี
+                </SegmentedFilterButton>
+              </SegmentedFilterGroup>
             </div>
-            <div className="border-t border-border pt-4">
-              <p className="mb-2 text-sm font-medium">ภาคการศึกษา</p>
-              <div className="grid grid-cols-4 gap-2">
-                {termOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    size="sm"
-                    variant={term === option.value ? "outline" : "secondary"}
-                    className={term === option.value ? "border-primary px-2 text-xs text-primary" : "px-2 text-xs"}
-                    onClick={() => setTerm(option.value)}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
+
+            {viewMode === "year" ? (
+              <div className="border-t border-border pt-4">
+                <p className="mb-2 text-sm font-medium">ปีการศึกษา</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {academicYears.map((year) => (
+                    <Button
+                      key={year}
+                      type="button"
+                      size="sm"
+                      variant={selectedAcademicYear === year ? "outline" : "secondary"}
+                      className={selectedAcademicYear === year ? "border-primary px-2 text-primary" : "px-2"}
+                      onClick={() => setAcademicYear(year)}
+                    >
+                      {year}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : null}
             <form
               role="search"
               className="border-t border-border pt-4"

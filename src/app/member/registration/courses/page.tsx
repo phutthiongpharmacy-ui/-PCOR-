@@ -228,11 +228,21 @@ export default function CourseRegistrationPage() {
                       <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                         <div><dt className="text-xs text-muted-foreground">ปี / ภาคการศึกษา</dt><dd className="mt-0.5 font-medium">{course.academicYear} / {course.term}</dd></div>
                         <div><dt className="text-xs text-muted-foreground">สถานที่เรียน</dt><dd className="mt-0.5 font-medium">{course.room}</dd></div>
-                        <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">สถาบันผู้รับผิดชอบ</dt><dd className="mt-0.5 font-medium">{course.institutionName}</dd></div>
+                        <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">หน่วยงานผู้ดูแล</dt><dd className="mt-0.5 font-medium">{course.universityName}</dd></div>
                       </dl>
-                      <div className="mt-4 max-w-xl">
-                        <div className="flex justify-between gap-3 text-xs"><span>จำนวนรับ {course.definition.capacity} คน</span><span>ลงทะเบียนแล้ว {course.definition.enrolled} คน</span></div>
-                        <Progress value={course.definition.enrolled} max={course.definition.capacity} tone={course.definition.enrolled >= course.definition.capacity ? "warning" : "brand"} className="mt-2" aria-label={`ลงทะเบียนแล้ว ${course.definition.enrolled} จาก ${course.definition.capacity} คน วิชา ${formatCollegeCourseCode(course.definition.code, course.definition.collegeCode)}`} />
+                      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="w-full max-w-xl">
+                          <div className="flex justify-between gap-3 text-xs"><span>จำนวนรับ {course.definition.capacity} คน</span><span>ลงทะเบียนแล้ว {course.definition.enrolled} คน</span></div>
+                          <Progress value={course.definition.enrolled} max={course.definition.capacity} tone={course.definition.enrolled >= course.definition.capacity ? "warning" : "brand"} className="mt-2" aria-label={`ลงทะเบียนแล้ว ${course.definition.enrolled} จาก ${course.definition.capacity} คน วิชา ${formatCollegeCourseCode(course.definition.code, course.definition.collegeCode)}`} />
+                        </div>
+                        {course.syllabus ? (
+                          <Button asChild variant="outline" className="min-h-11 shrink-0">
+                            <a href={course.syllabus.url} target="_blank" rel="noopener noreferrer">
+                              <span aria-hidden="true" className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                              เปิด Syllabus PDF
+                            </a>
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   )}

@@ -1,87 +1,29 @@
 import type {
-  Verification,
-  VerificationStatus,
-} from "@/roles/shared/member/domain/passport";
+  ActivityCategory,
+  ActivityFilters,
+  ActivityRequirement,
+  ActivityRequirementProgress,
+  ActivitySource,
+  ActivityTrainingYear,
+  ActivityTranscriptEntry,
+  ActivityYearSummary,
+} from "@/roles/shared/features/activity-transcript";
+import type { VerificationStatus } from "@/roles/shared/member/domain/passport";
 
-export type ActivityTrainingYear = 1 | 2 | 3 | 4;
-
-export type ActivityCategory =
-  | "seminar"
-  | "journal_club"
-  | "case_presentation"
-  | "teaching_supervision"
-  | "domestic_publication"
-  | "professional_project"
-  | "practice_improvement"
-  | "international_publication";
-
-export type ActivitySource = "student" | "college_checkin" | "system";
-
-export type ActivityEvidenceKind =
-  | "attendance"
-  | "presentation"
-  | "report"
-  | "publication"
-  | "certificate";
-
-export interface ActivityEvidence {
-  id: string;
-  name: string;
-  kind: ActivityEvidenceKind;
-}
-
-export interface ActivityRequirement {
-  id: string;
-  trainingYear: ActivityTrainingYear;
-  category: ActivityCategory;
-  label: string;
-  description: string;
-  icon: string;
-  /** Undefined means the curriculum requires presence but does not state a number. */
-  targetCount?: number;
-  unit: "ครั้ง" | "เรื่อง" | "โครงงาน" | "รายการ";
-}
-
-export interface ActivityTranscriptEntry {
-  id: string;
-  memberId: string;
-  trainingYear: ActivityTrainingYear;
-  academicYear: string;
-  requirementId: string;
-  category: ActivityCategory;
-  title: string;
-  activityDate: string;
-  institution: string;
-  role: string;
-  description: string;
-  source: ActivitySource;
-  evidence: ActivityEvidence[];
-  verification: Verification;
-}
-
-export interface ActivityRequirementProgress {
-  requirement: ActivityRequirement;
-  verifiedCount: number;
-  pendingCount: number;
-  rejectedCount: number;
-  isComplete: boolean;
-  progressValue: number;
-  progressMax: number;
-}
-
-export interface ActivityYearSummary {
-  verifiedEntries: number;
-  pendingEntries: number;
-  rejectedEntries: number;
-  completedRequirements: number;
-  totalRequirements: number;
-}
-
-export interface ActivityFilters {
-  category: ActivityCategory | "all";
-  status: VerificationStatus | "all";
-  query: string;
-}
+export type {
+  ActivityCategory,
+  ActivityEntryDraft,
+  ActivityEvidence,
+  ActivityEvidenceKind,
+  ActivityFilters,
+  ActivityRequirement,
+  ActivityRequirementProgress,
+  ActivitySource,
+  ActivityInstitutionSource,
+  ActivityTrainingYear,
+  ActivityTranscriptEntry,
+  ActivityYearSummary,
+} from "@/roles/shared/features/activity-transcript";
 
 export const activityCategoryMeta: Record<
   ActivityCategory,
@@ -161,6 +103,7 @@ export const activityVerificationMeta: Record<
 
 export const activitySourceLabels: Record<ActivitySource, string> = {
   student: "ผู้เรียนบันทึก",
+  officer: "เจ้าหน้าที่สถาบันบันทึก",
   college_checkin: "ข้อมูลจากสถาบันฝึกอบรม",
   system: "ข้อมูลจากระบบวิทยาลัย",
 };

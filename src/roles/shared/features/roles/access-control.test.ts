@@ -85,6 +85,35 @@ describe("canonical portal access", () => {
     )).toBe(false);
   });
 
+  it("keeps Activity Transcript inside the Institution workspace after the move", () => {
+    const institution = session(
+      "institution_admin",
+      ORGANISATIONS.siriraj,
+      ["institution:org-inst-siriraj"],
+    );
+    const officer = session(
+      "royal_college_staff",
+      ORGANISATIONS.royalCollege,
+      ["staff:central"],
+    );
+
+    expect(canPortalSessionAccessArea(
+      institution,
+      "institution",
+      "/institution/activity-transcript",
+    )).toBe(true);
+    expect(canPortalSessionAccessArea(
+      officer,
+      "institution",
+      "/institution/activity-transcript",
+    )).toBe(false);
+    expect(canPortalSessionAccessArea(
+      institution,
+      "staff",
+      "/staff/activity-transcript",
+    )).toBe(false);
+  });
+
   it("requires both organisation and resource scope", () => {
     const teacher = session(
       "teacher",

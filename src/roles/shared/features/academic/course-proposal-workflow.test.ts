@@ -6,7 +6,11 @@ import {
   reviewCourseProposalRecord,
 } from "./course-proposal-workflow";
 import { DEFAULT_COURSE_PROPOSALS } from "./mock-data";
-import { formatSubjectResultValue, type CourseProposalActor } from "./model";
+import {
+  formatSubjectResultValue,
+  type CourseProposalActor,
+  type CurriculumProposalDetails,
+} from "./model";
 
 const teacher: CourseProposalActor = {
   userId: "teacher-001",
@@ -22,6 +26,39 @@ const staff: CourseProposalActor = {
   role: "royal_college_staff",
   organisationId: "org-royal-college",
   resourceScopes: ["staff:central"],
+};
+
+const curriculum: CurriculumProposalDetails = {
+  collegeOrSpecialty: "วิทยาลัยเภสัชบำบัด",
+  curriculumNameTh: "หลักสูตรการฝึกอบรมเภสัชบำบัดขั้นสูง",
+  curriculumNameEn: "Advanced Pharmacotherapy Training Program",
+  qualificationNameTh: "วุฒิบัตรสาขาเภสัชบำบัด",
+  qualificationNameEn: "Diploma in Pharmacotherapy",
+  responsibleUnit: "วิทยาลัยเภสัชบำบัด",
+  mainInstitution: "มหาวิทยาลัยมหิดล",
+  affiliatedInstitutions: "โรงพยาบาลศิริราช",
+  philosophyAndObjectives: "พัฒนาสมรรถนะด้านการดูแลผู้ป่วยอย่างเป็นระบบ",
+  trainingDuration: "4 ปี",
+  educationManagementSystem: "ภาคทฤษฎี การฝึกปฏิบัติ และงานวิจัย",
+  credits: {
+    total: 48,
+    theory: 12,
+    laboratory: 4,
+    professionalPractice: 24,
+    researchOrProject: 8,
+  },
+  relatedShortCourses: "การติดตามระดับยาในเลือด",
+  hourCalculationRule: "ภาคทฤษฎี 15 ชั่วโมงเท่ากับ 1 หน่วยกิต",
+  applicantQualifications: "เภสัชกรที่มีใบอนุญาตประกอบวิชาชีพ",
+  selectionMethod: "ตรวจคุณสมบัติ สอบข้อเขียน และสัมภาษณ์",
+  assessmentMethod: "ประเมินผล S/U ตามสมรรถนะและผลงานวิจัย",
+  completionCriteria: "ผ่านรายวิชา การฝึกปฏิบัติ และการประเมินขั้นสุดท้าย",
+  trainingProviderQualifications: "มีคณะกรรมการบริหารหลักสูตรตามเกณฑ์",
+  trainingSiteQualifications: "มีจำนวนผู้ป่วยและอาจารย์ผู้ฝึกเพียงพอ",
+  notes: "ใช้เป็นข้อมูลทดสอบ",
+  pharmacyCouncilAnnouncementNo: "สภภ. 12/2569",
+  announcementDate: "2026-08-01",
+  effectiveDate: "2026-09-01",
 };
 
 function submitted() {
@@ -54,6 +91,51 @@ describe("course proposal workflow", () => {
     });
     expect(proposal.history[0].actor).not.toBe(teacher);
     expect(proposal.history[0].actor.resourceScopes).not.toBe(teacher.resourceScopes);
+  });
+
+  it("stores a validated curriculum payload without sharing mutable credit data", () => {
+    const proposal = createCourseProposal({
+      id: "CPROP-CURRICULUM-001",
+      actor: teacher,
+      courseCode: curriculum.pharmacyCouncilAnnouncementNo,
+      courseTitle: curriculum.curriculumNameTh,
+      credits: curriculum.credits.total,
+      rationale: curriculum.philosophyAndObjectives,
+      curriculum,
+      at: "2026-08-18T01:00:00.000Z",
+    });
+
+    expect(proposal.curriculum).toEqual(curriculum);
+    expect(proposal.curriculum).not.toBe(curriculum);
+    expect(proposal.curriculum?.credits).not.toBe(curriculum.credits);
+  });
+
+  it("rejects inconsistent curriculum credit totals and effective dates", () => {
+    expect(() => createCourseProposal({
+      id: "CPROP-CURRICULUM-002",
+      actor: teacher,
+      courseCode: curriculum.pharmacyCouncilAnnouncementNo,
+      courseTitle: curriculum.curriculumNameTh,
+      credits: 10,
+      rationale: curriculum.philosophyAndObjectives,
+      curriculum: {
+        ...curriculum,
+        credits: { ...curriculum.credits, total: 10 },
+      },
+    })).toThrow("Curriculum credit categories cannot exceed total credits");
+
+    expect(() => createCourseProposal({
+      id: "CPROP-CURRICULUM-003",
+      actor: teacher,
+      courseCode: curriculum.pharmacyCouncilAnnouncementNo,
+      courseTitle: curriculum.curriculumNameTh,
+      credits: curriculum.credits.total,
+      rationale: curriculum.philosophyAndObjectives,
+      curriculum: {
+        ...curriculum,
+        effectiveDate: "2026-07-01",
+      },
+    })).toThrow("Effective date cannot be earlier than announcement date");
   });
 
   it.each(["needs_revision", "passed", "rejected"] as const)(

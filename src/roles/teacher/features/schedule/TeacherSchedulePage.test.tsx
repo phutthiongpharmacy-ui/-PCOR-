@@ -50,13 +50,14 @@ describe("TeacherSchedulePage", () => {
     expect(screen.getByRole("heading", { level: 2, name: "ตารางสอน" })).toBeTruthy();
     expect(screen.getByText("วภท-301")).toBeTruthy();
     expect(screen.getByText("วภช-201")).toBeTruthy();
-    expect(screen.getByText("BCP-101")).toBeTruthy();
+    expect(screen.queryByText("BCP-101")).toBeNull();
     expect(screen.queryByText("BCP-220")).toBeNull();
     expect(screen.queryByText("วภท-302")).toBeNull();
-    expect(screen.getByText("รายวิชาที่ยังไม่กำหนดเวลา")).toBeTruthy();
+    expect(screen.queryByText("รายวิชาที่ยังไม่กำหนดเวลา")).toBeNull();
 
-    const schedule = screen.getByRole("list", { name: "คาบสอนเรียงตามวัน" });
-    expect(within(schedule).getAllByRole("link", { name: /เปิดรายวิชา/ })).toHaveLength(2);
+    const schedule = screen.getByRole("region", { name: "ตารางสอนประจำสัปดาห์" });
+    expect(within(schedule).getAllByRole("link")).toHaveLength(2);
+    expect(within(schedule).getByRole("link", { name: /วภช-201.*18:00–21:00/ })).toBeTruthy();
   });
 
   it("filters the timetable by academic term", () => {

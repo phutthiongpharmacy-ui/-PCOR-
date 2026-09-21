@@ -69,7 +69,7 @@ describe("MemberPathwayPage", () => {
     expect(within(roadmap).getAllByRole("button")).toHaveLength(9);
 
     const currentStage = within(roadmap).getByRole("button", {
-      name: /ปี 2: Specialized Residency ปี 2, กำลังศึกษา/,
+      name: /ปี 2: ฝึกเฉพาะทาง ปี 2, กำลังศึกษา/,
     });
     expect(currentStage.getAttribute("aria-current")).toBe("step");
     expect(currentStage.getAttribute("aria-pressed")).toBe("true");
@@ -82,24 +82,24 @@ describe("MemberPathwayPage", () => {
       name: "ลำดับเส้นทางการเรียนเภสัชบำบัด 4 ปี",
     });
     const yearThreeGate = within(roadmap).getByRole("button", {
-      name: /Gate ปี 3: การประเมินก่อนเข้าสู่ปี 4/,
+      name: /ก่อนปี 4: การประเมินก่อนเข้าสู่ปี 4/,
     });
     fireEvent.click(yearThreeGate);
 
     const yearThreeDetail = screen.getByRole("region", {
       name: "การประเมินก่อนเข้าสู่ปี 4",
     });
-    expect(within(yearThreeDetail).getByText("written เฉพาะทาง")).toBeTruthy();
+    expect(within(yearThreeDetail).getByText("สอบข้อเขียนเฉพาะทาง")).toBeTruthy();
     expect(within(yearThreeDetail).getAllByText("ไม่น้อยกว่า 80%")).toHaveLength(2);
     expect(yearThreeGate.getAttribute("aria-pressed")).toBe("true");
 
     const finalGate = within(roadmap).getByRole("button", {
-      name: /Final Gate: การประเมินเพื่อสำเร็จวุฒิบัตร/,
+      name: /ก่อนจบ: ตรวจสอบก่อนจบหลักสูตร/,
     });
     fireEvent.click(finalGate);
 
     const finalDetail = screen.getByRole("region", {
-      name: "การประเมินเพื่อสำเร็จวุฒิบัตร",
+      name: "ตรวจสอบก่อนจบหลักสูตร",
     });
     expect(within(finalDetail).getByText("อย่างน้อย 1 เรื่อง")).toBeTruthy();
     expect(within(finalDetail).getByText("ส่งภายใน 45 วัน")).toBeTruthy();
@@ -113,23 +113,20 @@ describe("MemberPathwayPage", () => {
       name: "ลำดับเส้นทางการเรียนเภสัชบำบัด 4 ปี",
     });
     const yearThree = within(roadmap).getByRole("button", {
-      name: /ปี 3: Specialized Residency ปี 3, ยังไม่เริ่ม/,
+      name: /ปี 3: ฝึกเฉพาะทาง ปี 3, ยังไม่เริ่ม/,
     });
 
     fireEvent.focus(yearThree);
 
     const preview = await screen.findByRole("tooltip");
-    expect(preview.textContent).toBe("รายละเอียดย่อ Specialized Residency ปี 3");
+    expect(preview.textContent).toBe("รายละเอียดย่อ ฝึกเฉพาะทาง ปี 3");
     expect(await screen.findByText("ขั้นที่ 5")).toBeTruthy();
-    expect(
-      screen.getByText("ฝึกเฉพาะทาง เตรียม Proposal และผลงานตามกำหนด"),
-    ).toBeTruthy();
     expect(screen.getByText("0 / 32")).toBeTruthy();
 
     fireEvent.click(yearThree);
     expect(yearThree.getAttribute("aria-pressed")).toBe("true");
     expect(
-      screen.getByRole("region", { name: "Specialized Residency ปี 3" }),
+      screen.getByRole("region", { name: "ฝึกเฉพาะทาง ปี 3" }),
     ).toBeTruthy();
   });
 
@@ -141,10 +138,10 @@ describe("MemberPathwayPage", () => {
     });
 
     fireEvent.click(within(roadmap).getByRole("button", {
-      name: /ปี 1: การฝึกอบรมปี 1/,
+      name: /ปี 1: ฝึกอบรมปี 1/,
     }));
     const yearOneCourses = screen.getByRole("list", {
-      name: "รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ปี 1",
+      name: "รายวิชาในขั้นนี้ ปี 1",
     });
     for (const code of ["01-1101", "01-1201", "01-1301", "01-1302", "01-1303", "01-1401"]) {
       expect(within(yearOneCourses).getByText(code)).toBeTruthy();
@@ -152,26 +149,29 @@ describe("MemberPathwayPage", () => {
     expect(within(yearOneCourses).getAllByText("ต้องเรียน")).toHaveLength(6);
 
     fireEvent.click(within(roadmap).getByRole("button", {
-      name: /ปี 2: Specialized Residency ปี 2/,
+      name: /ปี 2: ฝึกเฉพาะทาง ปี 2/,
     }));
     const yearTwoCourses = screen.getByRole("list", {
-      name: "รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ปี 2",
+      name: "รายวิชาในขั้นนี้ ปี 2",
     });
     expect(within(yearTwoCourses).getByText("01-2401–01-2413")).toBeTruthy();
     expect(within(yearTwoCourses).getByText("32 หน่วยกิต")).toBeTruthy();
     expect(within(yearTwoCourses).getByText("จากทั้งหมด 64 หน่วยกิต")).toBeTruthy();
-    const specialtyDisclosure = within(yearTwoCourses).getByText("เลือกฝึก 1 ด้านจาก 13 ด้าน");
+    const specialtyDisclosure = within(yearTwoCourses).getByText("ดูรายละเอียด");
     fireEvent.click(specialtyDisclosure);
+    expect(within(yearTwoCourses).getByText("เลือกฝึก 1 ด้านจาก 13 ด้าน")).toBeTruthy();
     expect(within(yearTwoCourses).getByText("01-2401")).toBeTruthy();
     expect(within(yearTwoCourses).getByText("01-2413")).toBeTruthy();
 
     fireEvent.click(within(roadmap).getByRole("button", {
-      name: /ปี 4: Research Fellowship ปี 4/,
+      name: /ปี 4: วิจัย ปี 4/,
     }));
     const yearFourCourses = screen.getByRole("list", {
-      name: "รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ปี 4",
+      name: "รายวิชาในขั้นนี้ ปี 4",
     });
     expect(within(yearFourCourses).getByText("01-4501")).toBeTruthy();
     expect(within(yearFourCourses).getByText("การฝึกอบรมด้านการทำวิจัยเชิงปฏิบัติการ")).toBeTruthy();
+    expect(screen.queryByText(/อ้างอิงโครงสร้าง 133 หน่วยกิต/)).toBeNull();
+    expect(screen.queryByText(/อ้างอิงคู่มือฝึกอบรมวุฒิบัตร 4 ปี/)).toBeNull();
   });
 });

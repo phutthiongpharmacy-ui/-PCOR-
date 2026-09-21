@@ -25,6 +25,7 @@ import type {
   CourseProposalDecision,
   CourseProposalStatus,
 } from "@/roles/shared/features/academic";
+import { CurriculumProposalDetailsView } from "@/roles/shared/features/academic";
 import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
 import { StaffPageHeader } from "@/roles/staff/components/StaffPageHeader";
 
@@ -76,13 +77,16 @@ export default function StaffCourseProposalsPage() {
         proposal.courseCode,
         proposal.courseTitle,
         proposal.proposerName,
+        proposal.curriculum?.collegeOrSpecialty ?? "",
+        proposal.curriculum?.mainInstitution ?? "",
+        proposal.curriculum?.curriculumNameEn ?? "",
       ].some((value) => value.toLocaleLowerCase("th-TH").includes(query)))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   }, [db.courseProposals, search, status]);
   const selected = db.courseProposals.find((proposal) => proposal.id === selectedId);
 
   if (!isReady || !db.isLoaded) {
-    return <PageShell size="full"><LoadingState label="กำลังโหลดคำขอสร้างรายวิชา" /></PageShell>;
+    return <PageShell size="full"><LoadingState label="กำลังโหลดคำขอหลักสูตร" /></PageShell>;
   }
 
   const closeReview = () => {
@@ -119,10 +123,10 @@ export default function StaffCourseProposalsPage() {
       });
       toast.success(
         decision === "passed"
-          ? "บันทึกว่ารายวิชาผ่านการตรวจแล้ว"
+          ? "บันทึกว่าหลักสูตรผ่านการตรวจแล้ว"
           : decision === "needs_revision"
             ? "ส่งข้อเสนอแนะกลับให้อาจารย์แก้ไขแล้ว"
-            : "บันทึกว่ารายวิชาไม่ผ่านการตรวจแล้ว",
+            : "บันทึกว่าหลักสูตรไม่ผ่านการตรวจแล้ว",
       );
       closeReview();
     } catch (error) {
@@ -135,8 +139,8 @@ export default function StaffCourseProposalsPage() {
     <PageShell size="full" className="space-y-6">
       <StaffPageHeader
         eyebrow="Course proposal review"
-        title="ตรวจคำขอสร้างรายวิชา"
-        description="พิจารณารายการที่อาจารย์เสนอ พร้อมส่งผลผ่าน ไม่ผ่าน หรือต้องแก้ไขกลับไปยังผู้เสนอ"
+        title="ตรวจคำขอหลักสูตร"
+        description="ตรวจข้อมูลหลักสูตรที่อาจารย์เสนอ แล้วบันทึกผลหรือส่งกลับให้แก้ไข"
       />
 
       <Card>
@@ -147,7 +151,7 @@ export default function StaffCourseProposalsPage() {
               <p aria-live="polite" className="mt-1 text-xs text-muted-foreground">แสดง {filtered.length} จาก {db.courseProposals.length} รายการ</p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <Input type="search" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="ค้นหาคำขอสร้างรายวิชา" placeholder="ค้นหารหัส ชื่อวิชา หรือผู้เสนอ" className="h-11 rounded-xl text-sm sm:w-72" />
+              <Input type="search" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="ค้นหาคำขอหลักสูตร" placeholder="ค้นหาชื่อหลักสูตร สาขา หรือผู้เสนอ" className="h-11 rounded-xl text-sm sm:w-72" />
               <label className="sr-only" htmlFor="course-proposal-status-filter">กรองสถานะคำขอ</label>
               <select id="course-proposal-status-filter" value={status} onChange={(event) => setStatus(event.target.value as CourseProposalStatus | "all")} className="h-11 rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <option value="all">ทุกสถานะ</option>
@@ -165,7 +169,7 @@ export default function StaffCourseProposalsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead scope="col">รหัสคำขอ</TableHead>
-                    <TableHead scope="col">รายวิชา</TableHead>
+                    <TableHead scope="col">หลักสูตร</TableHead>
                     <TableHead scope="col">ผู้เสนอ</TableHead>
                     <TableHead scope="col">อัปเดตล่าสุด</TableHead>
                     <TableHead scope="col">สถานะ</TableHead>
@@ -179,8 +183,12 @@ export default function StaffCourseProposalsPage() {
                       <TableRow key={proposal.id}>
                         <TableCell className="font-mono text-xs font-medium">{proposal.id}</TableCell>
                         <TableCell>
-                          <p className="font-medium text-foreground">{proposal.courseCode} · {proposal.courseTitle}</p>
-                          <p className="mt-1 max-w-md whitespace-normal text-xs text-muted-foreground">{proposal.credits} หน่วยกิต · {proposal.rationale}</p>
+                          <p className="font-medium text-foreground">{proposal.curriculum?.curriculumNameTh ?? proposal.courseTitle}</p>
+                          <p className="mt-1 max-w-md whitespace-normal text-xs text-muted-foreground">
+                            {proposal.curriculum
+                              ? `${proposal.curriculum.collegeOrSpecialty} · ${proposal.curriculum.credits.total} หน่วยกิต`
+                              : `${proposal.courseCode} · ${proposal.credits} หน่วยกิต · ข้อมูลรูปแบบเดิม`}
+                          </p>
                         </TableCell>
                         <TableCell>{proposal.proposerName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{formatDateTime(proposal.updatedAt)}</TableCell>
@@ -197,21 +205,20 @@ export default function StaffCourseProposalsPage() {
               </Table>
             </div>
           ) : (
-            <EmptyState icon="fact_check" title="ไม่พบคำขอสร้างรายวิชา" description="ลองเปลี่ยนคำค้นหาหรือตัวกรองสถานะ" />
+            <EmptyState icon="fact_check" title="ไม่พบคำขอหลักสูตร" description="ลองเปลี่ยนคำค้นหาหรือตัวกรองสถานะ" />
           )}
         </CardContent>
       </Card>
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) closeReview(); }}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>ตรวจคำขอ {selected?.courseCode}</DialogTitle>
-            <DialogDescription>{selected?.courseTitle} · เสนอโดย {selected?.proposerName}</DialogDescription>
+            <DialogDescription>{selected?.curriculum?.curriculumNameTh ?? selected?.courseTitle} · เสนอโดย {selected?.proposerName}</DialogDescription>
           </DialogHeader>
           {selected ? (
-            <div className="rounded-xl bg-muted/40 p-4 text-sm">
-              <p className="font-medium text-foreground">เหตุผลและวัตถุประสงค์</p>
-              <p className="mt-1 text-muted-foreground">{selected.rationale}</p>
+            <div className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+              <CurriculumProposalDetailsView proposal={selected} />
             </div>
           ) : null}
           {formError ? <div id="course-proposal-review-error" role="alert" className="rounded-xl border border-danger-border bg-danger-soft p-3 text-sm text-danger-on-soft">{formError}</div> : null}

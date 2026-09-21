@@ -1,12 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import { useMockDb } from "@/providers/mock-db-provider";
 import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import {
+  ForbiddenState,
+  LoadingState,
   MetricCard,
   WorkspaceHeader,
 } from "@/roles/shared/components/workspace/WorkspacePrimitives";
+import type { ActivityEntryDraft } from "@/roles/shared/features/activity-transcript";
+import { usePortalSession } from "@/roles/shared/features/roles/use-portal-session";
 
 import { ActivityDetailDialog } from "./ActivityDetailDialog";
 import { ActivityRequirementGrid } from "./ActivityRequirementGrid";
@@ -26,10 +33,10 @@ import {
   type ActivityTranscriptEntry,
 } from "./activity-transcript";
 import {
-  activityTranscriptEntries,
   activityTranscriptProfile,
   activityTranscriptRequirements,
 } from "./activity-transcript-data";
+import { StudentActivityEntryDialog } from "./StudentActivityEntryDialog";
 
 const initialFilters: ActivityFilters = {
   category: "all",
@@ -38,6 +45,8 @@ const initialFilters: ActivityFilters = {
 };
 
 export default function MemberActivityTranscriptPage() {
+  const db = useMockDb();
+  const { session, isReady } = usePortalSession();
   const [trainingYear, setTrainingYear] = useState<ActivityTrainingYear>(
     activityTranscriptProfile.currentTrainingYear,
   );
@@ -45,6 +54,11 @@ export default function MemberActivityTranscriptPage() {
   const [selectedEntry, setSelectedEntry] =
     useState<ActivityTranscriptEntry | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const memberEntries = useMemo(
+    () => db.activityTranscriptEntries.filter((entry) => entry.memberId === session?.userId),
+    [db.activityTranscriptEntries, session?.userId],
+  );
 
   const requirements = useMemo(
     () =>
@@ -55,8 +69,8 @@ export default function MemberActivityTranscriptPage() {
     [trainingYear],
   );
   const yearEntries = useMemo(
-    () => getActivityEntriesForYear(activityTranscriptEntries, trainingYear),
-    [trainingYear],
+    () => getActivityEntriesForYear(memberEntries, trainingYear),
+    [memberEntries, trainingYear],
   );
   const progress = useMemo(
     () =>
@@ -69,14 +83,14 @@ export default function MemberActivityTranscriptPage() {
     () =>
       summarizeActivityYear(
         activityTranscriptRequirements,
-        activityTranscriptEntries,
+        memberEntries,
         trainingYear,
       ),
-    [trainingYear],
+    [memberEntries, trainingYear],
   );
   const filteredEntries = useMemo(
-    () => filterActivityEntries(activityTranscriptEntries, trainingYear, filters),
-    [filters, trainingYear],
+    () => filterActivityEntries(memberEntries, trainingYear, filters),
+    [filters, memberEntries, trainingYear],
   );
   const categoryOptions = useMemo(
     () =>
@@ -94,13 +108,52 @@ export default function MemberActivityTranscriptPage() {
     setIsDetailOpen(true);
   };
 
+  if (!db.isLoaded || !isReady) {
+    return <PageShell><LoadingState label="กำลังโหลด Activity Transcript" /></PageShell>;
+  }
+
+  if (!session || session.role !== "student") {
+    return (
+      <PageShell>
+        <ForbiddenState description="ต้องเข้าสู่ระบบด้วยบัญชีผู้เรียนเพื่อเพิ่มและดู Activity Transcript ของตนเอง" />
+      </PageShell>
+    );
+  }
+
+  const submitActivity = (draft: ActivityEntryDraft) => {
+    try {
+      db.submitStudentActivity({
+        actor: {
+          userId: session.userId,
+          userName: session.displayName,
+          role: session.role,
+          organisationId: session.organisation.id,
+          resourceScopes: session.resourceScopes,
+        },
+        draft,
+      });
+      setTrainingYear(draft.trainingYear);
+      setFilters(initialFilters);
+      setIsCreateOpen(false);
+      toast.success("ส่งกิจกรรมเพื่อรอตรวจสอบแล้ว");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "ไม่สามารถเพิ่มกิจกรรมได้");
+    }
+  };
+
   return (
     <PageShell size="app" className="space-y-6">
-      <WorkspaceHeader
-        eyebrow={activityTranscriptProfile.programName}
-        title="Activity Transcript"
-        description="ติดตามกิจกรรมตามเงื่อนไขของหลักสูตรและหลักฐานที่ผ่านการตรวจสอบในแต่ละปีการฝึกอบรม"
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <WorkspaceHeader
+          eyebrow={activityTranscriptProfile.programName}
+          title="Activity Transcript"
+          description="ติดตามกิจกรรมตามเงื่อนไขของหลักสูตร พร้อมส่งหลักฐานเพื่อรอการตรวจสอบ"
+        />
+        <Button type="button" className="min-h-11 shrink-0" onClick={() => setIsCreateOpen(true)}>
+          <span aria-hidden="true" className="material-symbols-outlined text-lg">add</span>
+          เพิ่มกิจกรรม
+        </Button>
+      </div>
 
       <ActivityYearSelector
         value={trainingYear}
@@ -189,6 +242,15 @@ export default function MemberActivityTranscriptPage() {
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
       />
+      {isCreateOpen ? (
+        <StudentActivityEntryDialog
+          open
+          onOpenChange={setIsCreateOpen}
+          currentYear={trainingYear}
+          requirements={activityTranscriptRequirements}
+          onSubmit={submitActivity}
+        />
+      ) : null}
     </PageShell>
   );
 }

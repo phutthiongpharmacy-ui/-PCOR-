@@ -17,7 +17,7 @@ import {
 
 const QUICK_ACTIONS = [
   { href: "/staff/requests", icon: "description", label: "ตรวจคำร้อง", detail: "ตรวจเอกสารและส่งต่องาน" },
-  { href: "/staff/course-proposals", icon: "library_add_check", label: "ตรวจคำขอรายวิชา", detail: "พิจารณาข้อเสนอจากสถาบัน" },
+  { href: "/staff/course-proposals", icon: "library_add_check", label: "ตรวจคำขอหลักสูตร", detail: "พิจารณาข้อเสนอจากสถาบัน" },
   { href: "/staff/exams", icon: "quiz", label: "งานสอบ", detail: "จัดการรอบสอบและผลสอบ" },
   { href: "/staff/signatures", icon: "draw", label: "เตรียมเอกสารลงนาม", detail: "ตรวจความครบถ้วนและจัดคิว" },
 ] as const;

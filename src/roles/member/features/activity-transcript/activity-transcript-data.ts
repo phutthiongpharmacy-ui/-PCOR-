@@ -233,7 +233,7 @@ function verified(
   };
 }
 
-export const activityTranscriptEntries: ActivityTranscriptEntry[] = [
+const activityTranscriptEntrySeeds = [
   {
     id: "activity-y1-seminar-01",
     memberId: activityTranscriptProfile.memberId,
@@ -509,4 +509,8 @@ export const activityTranscriptEntries: ActivityTranscriptEntry[] = [
       note: "รออาจารย์ประจำแหล่งฝึกยืนยัน",
     },
   },
-];
+] satisfies Array<Omit<ActivityTranscriptEntry, "organisationId">>;
+
+export const activityTranscriptEntries: ActivityTranscriptEntry[] = activityTranscriptEntrySeeds.map(
+  (entry) => ({ ...entry, organisationId: "org-inst-siriraj" }),
+);

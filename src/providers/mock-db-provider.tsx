@@ -7,6 +7,22 @@ import {
   type AdmissionDocumentStatus,
 } from "@/roles/shared/features/admissions/documents";
 import {
+  cancelAdmissionExamRound as cancelAdmissionExamRoundRecord,
+  assertInstitutionExamScope,
+  closeAdmissionExamRound as closeAdmissionExamRoundRecord,
+  createAdmissionExamRound as createAdmissionExamRoundRecord,
+  openAdmissionExamRound as openAdmissionExamRoundRecord,
+  publishAdmissionExamResults as publishAdmissionExamResultsRecord,
+  reviseAdmissionExamResult as reviseAdmissionExamResultRecord,
+  saveAdmissionExamResultDraft as saveAdmissionExamResultDraftRecord,
+  DEFAULT_ADMISSION_EXAM_RESULTS,
+  DEFAULT_ADMISSION_EXAM_ROUNDS,
+  type AdmissionExamDecision,
+  type AdmissionExamResult,
+  type AdmissionExamRound,
+  type AdmissionExamRoundDraft,
+} from "@/roles/shared/features/admissions/admission-exam-workflow";
+import {
   defaultResearchSubmissions,
   type ResearchSubmission,
   type ResearchSubmissionStatus,
@@ -79,6 +95,7 @@ import {
   type CourseProposal,
   type CourseProposalActor,
   type CourseProposalDecision,
+  type CurriculumProposalDetails,
   type CourseOfferingChangeDecision,
   type CourseOfferingChangeRequest,
   type CourseOfferingEditablePatch,
@@ -97,6 +114,16 @@ import {
   type UserAuditEvent,
 } from "@/roles/shared/features/audit";
 import {
+  createInstitutionActivityEntry as createInstitutionActivityEntryRecord,
+  createStudentActivityEntry as createStudentActivityEntryRecord,
+  normalizeActivityTranscriptEntries,
+  reviewInstitutionStudentActivityEntry as reviewInstitutionStudentActivityEntryRecord,
+  type ActivityEntryDraft,
+  type ActivityInstitutionSource,
+  type ActivityReviewDecision,
+  type ActivityTranscriptEntry,
+} from "@/roles/shared/features/activity-transcript";
+import {
   ORGANISATIONS,
   ORGANISATION_LIST,
   hasResourceScope,
@@ -108,6 +135,10 @@ import {
   type AdmissionApplicationType,
   type InstitutionAdmissionReviewInput,
 } from "@/roles/institution/features/admissions/institution-admission-review";
+import {
+  activityTranscriptEntries as defaultActivityTranscriptEntries,
+  activityTranscriptRequirements,
+} from "@/roles/member/features/activity-transcript/activity-transcript-data";
 
 // Types
 export type Status = "pending" | "approved" | "rejected";
@@ -314,6 +345,7 @@ export interface CourseProposalSubmissionInput {
   courseTitle: string;
   credits: number;
   rationale: string;
+  curriculum?: CurriculumProposalDetails;
   evidenceReference?: string;
 }
 
@@ -328,6 +360,49 @@ export interface CourseProposalReviewInput {
   decision: CourseProposalDecision;
   reason: string;
   evidenceReference?: string;
+}
+
+export interface AdmissionExamRoundCreateInput {
+  actor: ScopedAcademicActor;
+  draft: AdmissionExamRoundDraft;
+}
+
+export interface AdmissionExamRoundActionInput {
+  actor: ScopedAcademicActor;
+  roundId: string;
+  reason?: string;
+}
+
+export interface AdmissionExamResultDraftInput {
+  actor: ScopedAcademicActor;
+  roundId: string;
+  admissionId: string;
+  decision: AdmissionExamDecision;
+  score?: number;
+  note?: string;
+}
+
+export interface AdmissionExamResultRevisionInput extends AdmissionExamResultDraftInput {
+  reason: string;
+}
+
+export interface StudentActivitySubmissionInput {
+  actor: ScopedAcademicActor;
+  draft: ActivityEntryDraft;
+}
+
+export interface InstitutionActivitySubmissionInput {
+  actor: ScopedAcademicActor;
+  memberId: string;
+  source: ActivityInstitutionSource;
+  draft: ActivityEntryDraft;
+}
+
+export interface InstitutionActivityReviewSubmissionInput {
+  actor: ScopedAcademicActor;
+  activityId: string;
+  decision: ActivityReviewDecision;
+  note?: string;
 }
 
 export type RegistrationSubmissionInput = Omit<
@@ -347,6 +422,21 @@ interface MockDbContextType {
     documentNote?: string,
   ) => void;
   reviewInstitutionAdmission: (input: InstitutionAdmissionReviewInput) => void;
+  admissionExamRounds: AdmissionExamRound[];
+  admissionExamResults: AdmissionExamResult[];
+  createAdmissionExamRound: (input: AdmissionExamRoundCreateInput) => void;
+  openAdmissionExamRound: (input: AdmissionExamRoundActionInput) => void;
+  closeAdmissionExamRound: (input: AdmissionExamRoundActionInput) => void;
+  cancelAdmissionExamRound: (input: AdmissionExamRoundActionInput & { reason: string }) => void;
+  deleteAdmissionExamRound: (input: AdmissionExamRoundActionInput) => void;
+  saveAdmissionExamResultDraft: (input: AdmissionExamResultDraftInput) => void;
+  publishAdmissionExamResults: (input: AdmissionExamRoundActionInput & { reason: string }) => void;
+  reviseAdmissionExamResult: (input: AdmissionExamResultRevisionInput) => void;
+
+  activityTranscriptEntries: ActivityTranscriptEntry[];
+  submitStudentActivity: (input: StudentActivitySubmissionInput) => void;
+  recordInstitutionActivity: (input: InstitutionActivitySubmissionInput) => void;
+  reviewInstitutionActivity: (input: InstitutionActivityReviewSubmissionInput) => void;
 
   researchSubmissions: ResearchSubmission[];
   setResearchSubmissions: React.Dispatch<React.SetStateAction<ResearchSubmission[]>>;
@@ -1639,6 +1729,58 @@ function isCourseProposalHistoryRecord(
     (value.evidenceReference === undefined || typeof value.evidenceReference === "string");
 }
 
+function isCurriculumProposalDetailsRecord(
+  value: unknown,
+): value is CurriculumProposalDetails {
+  if (!isStringRecord(value) || !isStringRecord(value.credits)) return false;
+  const credits = value.credits;
+  const total = credits.total;
+  const theory = credits.theory;
+  const laboratory = credits.laboratory;
+  const professionalPractice = credits.professionalPractice;
+  const researchOrProject = credits.researchOrProject;
+  const announcementDate = value.announcementDate;
+  const effectiveDate = value.effectiveDate;
+  const requiredTextKeys = [
+    "collegeOrSpecialty",
+    "curriculumNameTh",
+    "curriculumNameEn",
+    "qualificationNameTh",
+    "qualificationNameEn",
+    "responsibleUnit",
+    "mainInstitution",
+    "philosophyAndObjectives",
+    "trainingDuration",
+    "educationManagementSystem",
+    "hourCalculationRule",
+    "applicantQualifications",
+    "selectionMethod",
+    "assessmentMethod",
+    "completionCriteria",
+    "trainingProviderQualifications",
+    "trainingSiteQualifications",
+    "pharmacyCouncilAnnouncementNo",
+    "announcementDate",
+    "effectiveDate",
+  ] as const;
+  const optionalTextKeys = [
+    "affiliatedInstitutions",
+    "relatedShortCourses",
+    "notes",
+  ] as const;
+  return requiredTextKeys.every((key) => isNonEmptyString(value[key])) &&
+    optionalTextKeys.every((key) => typeof value[key] === "string") &&
+    typeof total === "number" && Number.isFinite(total) && total > 0 &&
+    typeof theory === "number" && Number.isFinite(theory) && theory >= 0 &&
+    typeof laboratory === "number" && Number.isFinite(laboratory) && laboratory >= 0 &&
+    typeof professionalPractice === "number" && Number.isFinite(professionalPractice) && professionalPractice >= 0 &&
+    typeof researchOrProject === "number" && Number.isFinite(researchOrProject) && researchOrProject >= 0 &&
+    theory + laboratory + professionalPractice + researchOrProject <= total &&
+    typeof announcementDate === "string" && Number.isFinite(Date.parse(announcementDate)) &&
+    typeof effectiveDate === "string" && Number.isFinite(Date.parse(effectiveDate)) &&
+    effectiveDate >= announcementDate;
+}
+
 function isCourseProposalRecord(value: unknown): value is CourseProposal {
   if (!isStringRecord(value)) return false;
   const latestReview = value.latestReview;
@@ -1656,6 +1798,7 @@ function isCourseProposalRecord(value: unknown): value is CourseProposal {
     isNonEmptyString(value.rationale) && isCourseProposalStatus(value.status) &&
     isNonEmptyString(value.submittedAt) && Number.isFinite(Date.parse(value.submittedAt)) &&
     isNonEmptyString(value.updatedAt) && Number.isFinite(Date.parse(value.updatedAt)) &&
+    (value.curriculum === undefined || isCurriculumProposalDetailsRecord(value.curriculum)) &&
     hasValidReview && Array.isArray(value.history) && value.history.length > 0 &&
     value.history.every(isCourseProposalHistoryRecord);
 }
@@ -1926,6 +2069,8 @@ const MockDbContext = createContext<MockDbContextType | undefined>(undefined);
 export function MockDbProvider({ children }: { children: ReactNode }) {
   const auditLog = useAuditLog();
   const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [admissionExamRounds, setAdmissionExamRounds] = useState<AdmissionExamRound[]>([]);
+  const [admissionExamResults, setAdmissionExamResults] = useState<AdmissionExamResult[]>([]);
   const [researchSubmissions, setResearchSubmissions] = useState<ResearchSubmission[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -1942,6 +2087,7 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
   const [courseOfferingChangeRequests, setCourseOfferingChangeRequests] = useState<CourseOfferingChangeRequest[]>([]);
   const [courseProposals, setCourseProposals] = useState<CourseProposal[]>([]);
   const [subjectResults, setSubjectResults] = useState<SubjectResult[]>([]);
+  const [activityTranscriptEntries, setActivityTranscriptEntries] = useState<ActivityTranscriptEntry[]>([]);
   const [examRequests, setExamRequests] = useState<ExamRequest[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -2017,7 +2163,27 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
     );
 
     /* eslint-disable react-hooks/set-state-in-effect */
+    const storedAdmissionExamRoundsValue = s("mock_admission_exam_rounds");
+    const storedAdmissionExamResultsValue = s("mock_admission_exam_results");
+    const storedAdmissionExamRounds = asArray<AdmissionExamRound>(
+      p(storedAdmissionExamRoundsValue, []),
+      [],
+    );
+    const storedAdmissionExamResults = asArray<AdmissionExamResult>(
+      p(storedAdmissionExamResultsValue, []),
+      [],
+    );
+    const shouldSeedAdmissionExamExample = storedAdmissionExamRoundsValue === null;
+
     setAdmissions(normalizedAdmissions);
+    setAdmissionExamRounds(shouldSeedAdmissionExamExample
+      ? [...DEFAULT_ADMISSION_EXAM_ROUNDS]
+      : storedAdmissionExamRounds);
+    setAdmissionExamResults(
+      shouldSeedAdmissionExamExample && storedAdmissionExamResults.length === 0
+        ? [...DEFAULT_ADMISSION_EXAM_RESULTS]
+        : storedAdmissionExamResults,
+    );
     setResearchSubmissions(normalizeResearchSubmissions(parsedResearchSubmissions));
     setPayments(asArray(p(s("mock_payments"), defaultPayments), defaultPayments).map((payment) => (
       payment.studentId === KARINA_STUDENT_ID
@@ -2050,6 +2216,17 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
     setCourseOfferingChangeRequests(normalizedCourseOfferingChangeRequests);
     setCourseProposals(normalizedCourseProposals);
     setSubjectResults(normalizedSubjectResults);
+    setActivityTranscriptEntries(normalizeActivityTranscriptEntries(
+      p(s("mock_activity_transcript_entries"), defaultActivityTranscriptEntries),
+      defaultActivityTranscriptEntries,
+      (memberId, activityDate) => {
+        const at = new Date(`${activityDate.slice(0, 10)}T12:00:00+07:00`);
+        const matches = normalizedStudentAffiliations.filter((affiliation) => (
+          affiliation.studentId === memberId && isAcademicAffiliationActive(affiliation, at)
+        ));
+        return matches.length === 1 ? matches[0].institutionId : undefined;
+      },
+    ));
     setExamRequests(asArray(p(s("mock_examRequests"), defaultExamRequests), defaultExamRequests));
     setCertificates(asArray(p(s("mock_certificates"), defaultCertificates), defaultCertificates));
     setSettings({ ...defaultSettings, ...p(s("mock_settings"), defaultSettings) });
@@ -2060,6 +2237,8 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem("mock_admissions", JSON.stringify(admissions));
+    localStorage.setItem("mock_admission_exam_rounds", JSON.stringify(admissionExamRounds));
+    localStorage.setItem("mock_admission_exam_results", JSON.stringify(admissionExamResults));
     localStorage.setItem("mock_researchSubmissions", JSON.stringify(researchSubmissions));
     localStorage.setItem("mock_payments", JSON.stringify(payments));
     localStorage.setItem("mock_programs", JSON.stringify(programs));
@@ -2076,11 +2255,12 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("mock_course_offering_change_requests", JSON.stringify(courseOfferingChangeRequests));
     localStorage.setItem("mock_course_proposals", JSON.stringify(courseProposals));
     localStorage.setItem("mock_subject_results", JSON.stringify(subjectResults));
+    localStorage.setItem("mock_activity_transcript_entries", JSON.stringify(activityTranscriptEntries));
     localStorage.setItem("mock_examRequests", JSON.stringify(examRequests));
     localStorage.setItem("mock_certificates", JSON.stringify(certificates));
     localStorage.setItem("mock_settings", JSON.stringify(settings));
-    localStorage.setItem("mock_db_schema_version", "8");
-  }, [academicInstitutions, academicStudents, academicTeachers, admissions, certificates, courseOfferingChangeRequests, courseOfferings, courseProposals, courseRequests, examRequests, isLoaded, payments, programs, registrationInvoices, registrations, researchSubmissions, settings, studentAffiliations, subjectResults, teacherAffiliations, teachingAssignments]);
+    localStorage.setItem("mock_db_schema_version", "10");
+  }, [academicInstitutions, academicStudents, academicTeachers, activityTranscriptEntries, admissionExamResults, admissionExamRounds, admissions, certificates, courseOfferingChangeRequests, courseOfferings, courseProposals, courseRequests, examRequests, isLoaded, payments, programs, registrationInvoices, registrations, researchSubmissions, settings, studentAffiliations, subjectResults, teacherAffiliations, teachingAssignments]);
 
   const updateAdmissionStatus = (id: string, status: Status) => setAdmissions((previous) => previous.map((admission) => {
     if (admission.id !== id) return admission;
@@ -2148,6 +2328,225 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
     });
     setAdmissions((previous) => previous.map((item) => (
       item.id === admission.id ? updated : item
+    )));
+  };
+  const createAdmissionExamRound = (input: AdmissionExamRoundCreateInput) => {
+    const occurredAt = new Date().toISOString();
+    const id = `AER-${Date.now().toString(36).toUpperCase()}-${(
+      globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
+    ).slice(0, 6).toUpperCase()}`;
+    const created = createAdmissionExamRoundRecord({
+      id,
+      actor: input.actor,
+      admissions,
+      draft: input.draft,
+      at: occurredAt,
+    });
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: "admission_exam.round_create",
+      resourceType: "admission_exam_round",
+      resourceId: created.id,
+      resourceLabel: created.title,
+      resourceOrganisationId: created.institutionId,
+      before: null,
+      after: created,
+      reason: "สร้างร่างรอบสอบคัดเลือก",
+      occurredAt,
+    });
+    setAdmissionExamRounds((previous) => [created, ...previous]);
+  };
+  const transitionAdmissionExamRound = (
+    input: AdmissionExamRoundActionInput,
+    transition: (
+      round: AdmissionExamRound,
+      actor: ScopedAcademicActor,
+      reason: string,
+      at?: string,
+    ) => AdmissionExamRound,
+    action: string,
+    fallbackReason: string,
+  ) => {
+    const current = admissionExamRounds.find((round) => round.id === input.roundId);
+    if (!current) throw new Error("ไม่พบรอบสอบที่ต้องการดำเนินการ");
+    const occurredAt = new Date().toISOString();
+    const reason = input.reason?.trim() || fallbackReason;
+    const updated = transition(current, input.actor, reason, occurredAt);
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action,
+      resourceType: "admission_exam_round",
+      resourceId: current.id,
+      resourceLabel: current.title,
+      resourceOrganisationId: current.institutionId,
+      before: current,
+      after: updated,
+      reason,
+      occurredAt,
+    });
+    setAdmissionExamRounds((previous) => previous.map((round) => (
+      round.id === current.id ? updated : round
+    )));
+  };
+  const openAdmissionExamRound = (input: AdmissionExamRoundActionInput) => {
+    transitionAdmissionExamRound(
+      input,
+      openAdmissionExamRoundRecord,
+      "admission_exam.round_open",
+      "ตรวจสอบกำหนดการและรายชื่อผู้มีสิทธิ์สอบแล้ว",
+    );
+  };
+  const closeAdmissionExamRound = (input: AdmissionExamRoundActionInput) => {
+    transitionAdmissionExamRound(
+      input,
+      closeAdmissionExamRoundRecord,
+      "admission_exam.round_close",
+      "การสอบเสร็จสิ้นและพร้อมบันทึกผล",
+    );
+  };
+  const cancelAdmissionExamRound = (input: AdmissionExamRoundActionInput & { reason: string }) => {
+    transitionAdmissionExamRound(
+      input,
+      cancelAdmissionExamRoundRecord,
+      "admission_exam.round_cancel",
+      input.reason,
+    );
+  };
+  const deleteAdmissionExamRound = (input: AdmissionExamRoundActionInput) => {
+    const current = admissionExamRounds.find((round) => round.id === input.roundId);
+    if (!current) throw new Error("ไม่พบรอบสอบที่ต้องการลบ");
+    assertInstitutionExamScope(input.actor, current.institutionId);
+    const occurredAt = new Date().toISOString();
+    const relatedResults = admissionExamResults.filter((result) => (
+      result.roundId === current.id
+    ));
+    const reason = input.reason?.trim() || "ลบรอบสอบและผลสอบที่เชื่อมโยงทั้งหมด";
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: "admission_exam.round_delete",
+      resourceType: "admission_exam_round",
+      resourceId: current.id,
+      resourceLabel: current.title,
+      resourceOrganisationId: current.institutionId,
+      before: { round: current, results: relatedResults },
+      after: null,
+      reason,
+      occurredAt,
+    });
+    setAdmissionExamResults((previous) => previous.filter((result) => (
+      result.roundId !== current.id
+    )));
+    setAdmissionExamRounds((previous) => previous.filter((round) => (
+      round.id !== current.id
+    )));
+  };
+  const saveAdmissionExamResultDraft = (input: AdmissionExamResultDraftInput) => {
+    const round = admissionExamRounds.find((item) => item.id === input.roundId);
+    if (!round) throw new Error("ไม่พบรอบสอบที่ต้องการบันทึกผล");
+    const current = admissionExamResults.find((result) => (
+      result.roundId === input.roundId && result.admissionId === input.admissionId
+    ));
+    const occurredAt = new Date().toISOString();
+    const updated = saveAdmissionExamResultDraftRecord({
+      round,
+      current,
+      admissionId: input.admissionId,
+      decision: input.decision,
+      score: input.score,
+      note: input.note,
+      actor: input.actor,
+      at: occurredAt,
+    });
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: "admission_exam.result_draft",
+      resourceType: "admission_exam_result",
+      resourceId: updated.id,
+      resourceLabel: `${round.title} · ${input.admissionId}`,
+      resourceOrganisationId: round.institutionId,
+      before: current ?? null,
+      after: updated,
+      reason: "บันทึกร่างผลสอบคัดเลือก",
+      occurredAt,
+    });
+    setAdmissionExamResults((previous) => current
+      ? previous.map((result) => result.id === current.id ? updated : result)
+      : [updated, ...previous]);
+  };
+  const publishAdmissionExamResults = (
+    input: AdmissionExamRoundActionInput & { reason: string },
+  ) => {
+    const round = admissionExamRounds.find((item) => item.id === input.roundId);
+    if (!round) throw new Error("ไม่พบรอบสอบที่ต้องการประกาศผล");
+    const currentResults = admissionExamResults.filter((result) => result.roundId === round.id);
+    const occurredAt = new Date().toISOString();
+    const published = publishAdmissionExamResultsRecord({
+      round,
+      results: currentResults,
+      actor: input.actor,
+      reason: input.reason,
+      at: occurredAt,
+    });
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: "admission_exam.result_publish",
+      resourceType: "admission_exam_round",
+      resourceId: round.id,
+      resourceLabel: round.title,
+      resourceOrganisationId: round.institutionId,
+      before: { round, results: currentResults },
+      after: published,
+      reason: input.reason,
+      occurredAt,
+    });
+    const publishedByAdmissionId = new Map(
+      published.results.map((result) => [result.admissionId, result]),
+    );
+    setAdmissionExamResults((previous) => [
+      ...previous.filter((result) => result.roundId !== round.id),
+      ...round.candidateAdmissionIds.map((admissionId) => publishedByAdmissionId.get(admissionId)!),
+    ]);
+    setAdmissionExamRounds((previous) => previous.map((item) => (
+      item.id === round.id ? published.round : item
+    )));
+  };
+  const reviseAdmissionExamResult = (input: AdmissionExamResultRevisionInput) => {
+    const round = admissionExamRounds.find((item) => item.id === input.roundId);
+    const current = admissionExamResults.find((result) => (
+      result.roundId === input.roundId && result.admissionId === input.admissionId
+    ));
+    if (!round || !current) throw new Error("ไม่พบผลสอบที่ต้องการแก้ไข");
+    const occurredAt = new Date().toISOString();
+    const updated = reviseAdmissionExamResultRecord({
+      round,
+      result: current,
+      decision: input.decision,
+      score: input.score,
+      note: input.note,
+      reason: input.reason,
+      actor: input.actor,
+      at: occurredAt,
+    });
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: "admission_exam.result_revise",
+      resourceType: "admission_exam_result",
+      resourceId: current.id,
+      resourceLabel: `${round.title} · ${input.admissionId}`,
+      resourceOrganisationId: round.institutionId,
+      before: current,
+      after: updated,
+      reason: input.reason,
+      occurredAt,
+    });
+    setAdmissionExamResults((previous) => previous.map((result) => (
+      result.id === current.id ? updated : result
     )));
   };
   const addResearchSubmission = (submission: ResearchSubmission) => setResearchSubmissions((previous) => [submission, ...previous]);
@@ -3015,6 +3414,7 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
       courseTitle: input.courseTitle,
       credits: input.credits,
       rationale: input.rationale,
+      curriculum: input.curriculum,
       evidenceReference: input.evidenceReference,
       at: at.toISOString(),
     });
@@ -3050,6 +3450,7 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
       courseTitle: input.courseTitle,
       credits: input.credits,
       rationale: input.rationale,
+      curriculum: input.curriculum,
       reason: input.reason,
       evidenceReference: input.evidenceReference,
       at: at.toISOString(),
@@ -3173,6 +3574,129 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
     });
     setSubjectResults((previous) => previous.map((item) => item.id === result.id ? updated : item));
   };
+  const activityEntryId = () => `ACT-${Date.now().toString(36).toUpperCase()}-${(
+    globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
+  ).slice(0, 6).toUpperCase()}`;
+  const activityRequirementFor = (draft: ActivityEntryDraft) => {
+    const requirement = activityTranscriptRequirements.find((item) => (
+      item.id === draft.requirementId && item.trainingYear === draft.trainingYear
+    ));
+    if (!requirement) throw new Error("ไม่พบเงื่อนไขกิจกรรมที่เลือก");
+    return requirement;
+  };
+  const submitStudentActivity = (input: StudentActivitySubmissionInput) => {
+    const affiliation = studentAffiliations.find((item) => (
+      item.studentId === input.actor.userId &&
+      item.institutionId === input.actor.organisationId &&
+      isAcademicAffiliationActive(item)
+    ));
+    if (!affiliation) throw new Error("ผู้เรียนไม่มีสังกัดที่ใช้งานในสถาบันของบัญชีนี้");
+    const occurredAt = new Date().toISOString();
+    const created = createStudentActivityEntryRecord({
+      id: activityEntryId(),
+      actor: input.actor,
+      requirement: activityRequirementFor(input.draft),
+      draft: input.draft,
+      recordedAt: occurredAt,
+    });
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: "activity_transcript.student_submit",
+      resourceType: "activity_transcript_entry",
+      resourceId: created.id,
+      resourceLabel: created.title,
+      resourceOrganisationId: input.actor.organisationId,
+      before: null,
+      after: created,
+      reason: "ผู้เรียนส่งกิจกรรมและหลักฐานเพื่อรอการตรวจสอบ",
+      evidenceReference: created.evidence[0].name,
+      occurredAt,
+    });
+    setActivityTranscriptEntries((previous) => [created, ...previous]);
+  };
+  const recordInstitutionActivity = (input: InstitutionActivitySubmissionInput) => {
+    assertInstitutionAdminMutationScope(input.actor, input.actor.organisationId);
+    const member = academicStudents.find((item) => item.id === input.memberId);
+    if (!member) throw new Error("ไม่พบผู้เรียนที่เลือก");
+    const affiliation = studentAffiliations.find((item) => (
+      item.studentId === member.id &&
+      item.institutionId === input.actor.organisationId &&
+      isAcademicAffiliationActive(item)
+    ));
+    if (!affiliation) throw new Error("ผู้เรียนอยู่นอกขอบเขตสถาบันของคุณหรือไม่มีสังกัดที่ใช้งาน");
+    const occurredAt = new Date().toISOString();
+    const created = createInstitutionActivityEntryRecord({
+      id: activityEntryId(),
+      actor: input.actor,
+      memberId: member.id,
+      memberName: member.name,
+      requirement: activityRequirementFor(input.draft),
+      source: input.source,
+      draft: input.draft,
+      recordedAt: occurredAt,
+    });
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: "activity_transcript.institution_record",
+      resourceType: "activity_transcript_entry",
+      resourceId: created.id,
+      resourceLabel: `${member.name} · ${created.title}`,
+      resourceOrganisationId: affiliation.institutionId,
+      before: null,
+      after: created,
+      reason: input.source === "college_checkin"
+        ? "สถาบันบันทึกกิจกรรมจากข้อมูล Check-in ที่ตรวจสอบแล้ว"
+        : "เจ้าหน้าที่สถาบันบันทึกกิจกรรมให้ผู้เรียน",
+      evidenceReference: created.evidence[0].name,
+      occurredAt,
+    });
+    setActivityTranscriptEntries((previous) => [created, ...previous]);
+  };
+  const reviewInstitutionActivity = (input: InstitutionActivityReviewSubmissionInput) => {
+    assertInstitutionAdminMutationScope(input.actor, input.actor.organisationId);
+    const current = activityTranscriptEntries.find((entry) => entry.id === input.activityId);
+    if (!current) throw new Error("ไม่พบรายการ Activity Transcript ที่เลือก");
+    if (!current.organisationId || current.organisationId !== input.actor.organisationId) {
+      throw new Error("รายการ Activity Transcript อยู่นอกขอบเขตสถาบันของคุณ");
+    }
+    const affiliation = studentAffiliations.find((item) => (
+      item.studentId === current.memberId &&
+      item.institutionId === input.actor.organisationId &&
+      isAcademicAffiliationActive(item)
+    ));
+    if (!affiliation) throw new Error("ผู้เรียนอยู่นอกขอบเขตสถาบันของคุณหรือไม่มีสังกัดที่ใช้งาน");
+
+    const occurredAt = new Date().toISOString();
+    const updated = reviewInstitutionStudentActivityEntryRecord({
+      actor: input.actor,
+      entry: current,
+      decision: input.decision,
+      note: input.note,
+      reviewedAt: occurredAt,
+    });
+    const member = academicStudents.find((item) => item.id === updated.memberId);
+    appendAcademicAudit({
+      actor: input.actor,
+      resourceScopes: input.actor.resourceScopes,
+      action: input.decision === "approve"
+        ? "activity_transcript.review_approved"
+        : "activity_transcript.review_rejected",
+      resourceType: "activity_transcript_entry",
+      resourceId: updated.id,
+      resourceLabel: `${member?.name ?? updated.memberId} · ${updated.title}`,
+      resourceOrganisationId: affiliation.institutionId,
+      before: current,
+      after: updated,
+      reason: updated.verification.note,
+      evidenceReference: updated.evidence[0]?.name,
+      occurredAt,
+    });
+    setActivityTranscriptEntries((previous) => previous.map((entry) => (
+      entry.id === updated.id ? updated : entry
+    )));
+  };
   const updateExamRequestStatus = (id: string, status: ExamRequest["status"]) => setExamRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   const updateCertificateStatus = (id: string, status: Certificate["status"]) => setCertificates(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   const updateSettings = (newSettings: Partial<Settings>) => setSettings(prev => ({ ...prev, ...newSettings }));
@@ -3183,6 +3707,10 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
         isLoaded,
         admissions, setAdmissions, updateAdmissionStatus, updateAdmissionDocuments,
         reviewInstitutionAdmission,
+        admissionExamRounds, admissionExamResults,
+        createAdmissionExamRound, openAdmissionExamRound, closeAdmissionExamRound,
+        cancelAdmissionExamRound, deleteAdmissionExamRound, saveAdmissionExamResultDraft,
+        publishAdmissionExamResults, reviseAdmissionExamResult,
         researchSubmissions, setResearchSubmissions, addResearchSubmission, updateResearchSubmissionStatus,
         payments, setPayments, updatePaymentStatus, addPayment,
         programs, setPrograms,
@@ -3202,6 +3730,8 @@ export function MockDbProvider({ children }: { children: ReactNode }) {
         requestCourseOfferingChange, resubmitCourseOfferingChange, reviewCourseOfferingChange,
         submitCourseProposal, resubmitCourseProposal, reviewCourseProposal,
         saveSubjectResultDraft, publishSubjectResult, reviseSubjectResult,
+        activityTranscriptEntries, submitStudentActivity, recordInstitutionActivity,
+        reviewInstitutionActivity,
         examRequests, setExamRequests, updateExamRequestStatus,
         certificates, setCertificates, updateCertificateStatus,
         settings, updateSettings,

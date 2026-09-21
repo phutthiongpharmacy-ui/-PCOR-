@@ -12,6 +12,10 @@ import {
   AUDIT_STORAGE_KEY,
   readAuditEvents,
 } from "@/roles/shared/features/audit";
+import {
+  DEFAULT_ADMISSION_EXAM_RESULTS,
+  DEFAULT_ADMISSION_EXAM_ROUNDS,
+} from "@/roles/shared/features/admissions/admission-exam-workflow";
 
 import {
   normalizeRegistrationInvoices,
@@ -67,6 +71,140 @@ const teacherAssignmentActor: ScopedAcademicActor = {
   ...teacherProposalActor,
   resourceScopes: [...teacherProposalActor.resourceScopes, "course:offering-bcp-220"],
 };
+
+describe("mock DB admission exam example", () => {
+  it("seeds a publishable example on the first load", async () => {
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.admissionExamRounds).toEqual(DEFAULT_ADMISSION_EXAM_ROUNDS);
+    expect(result.current.admissionExamResults).toEqual(DEFAULT_ADMISSION_EXAM_RESULTS);
+    expect(result.current.admissionExamRounds[0]).toMatchObject({
+      institutionId: "org-inst-siriraj",
+      status: "closed",
+      candidateAdmissionIds: ["APP-2026-006"],
+    });
+    expect(result.current.admissionExamResults[0]).toMatchObject({
+      admissionId: "APP-2026-006",
+      status: "draft",
+      draftDecision: "passed",
+    });
+    expect(result.current.admissions.find((admission) => admission.id === "APP-2026-006"))
+      .toMatchObject({
+        institutionId: "org-inst-siriraj",
+        applicationType: "study",
+        status: "approved",
+        program: "การบริบาลทางเภสัชกรรม",
+      });
+
+    act(() => result.current.publishAdmissionExamResults({
+      actor: institutionActor,
+      roundId: DEFAULT_ADMISSION_EXAM_ROUNDS[0].id,
+      reason: "ตรวจสอบข้อมูลตัวอย่างครบถ้วน",
+    }));
+
+    expect(result.current.admissionExamRounds[0].status).toBe("published");
+    expect(result.current.admissionExamResults[0]).toMatchObject({
+      status: "published",
+      currentDecision: "passed",
+    });
+  });
+
+  it("keeps an explicitly emptied exam workspace empty", async () => {
+    window.localStorage.setItem("mock_admission_exam_rounds", "[]");
+    window.localStorage.setItem("mock_admission_exam_results", "[]");
+
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.admissionExamRounds).toEqual([]);
+    expect(result.current.admissionExamResults).toEqual([]);
+  });
+
+  it("keeps an existing round instead of injecting the example", async () => {
+    const existingRound = {
+      ...DEFAULT_ADMISSION_EXAM_ROUNDS[0],
+      id: "ADM-EXAM-EXISTING",
+      title: "รอบสอบที่ผู้ใช้สร้างไว้",
+    };
+    const existingResult = {
+      ...DEFAULT_ADMISSION_EXAM_RESULTS[0],
+      id: "ADM-EXAM-EXISTING-APP-2026-006",
+      roundId: existingRound.id,
+    };
+    window.localStorage.setItem("mock_admission_exam_rounds", JSON.stringify([existingRound]));
+    window.localStorage.setItem("mock_admission_exam_results", JSON.stringify([existingResult]));
+
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.admissionExamRounds).toEqual([existingRound]);
+    expect(result.current.admissionExamResults).toEqual([existingResult]);
+    expect(result.current.admissionExamRounds).not.toEqual(DEFAULT_ADMISSION_EXAM_ROUNDS);
+  });
+
+  it("deletes an exam round and its results while preserving the audit record", async () => {
+    const { result, unmount } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    const round = result.current.admissionExamRounds[0];
+    const admissionCount = result.current.admissions.length;
+    act(() => result.current.deleteAdmissionExamRound({
+      actor: institutionActor,
+      roundId: round.id,
+      reason: "ลบข้อมูลรอบสอบตัวอย่าง",
+    }));
+
+    expect(result.current.admissionExamRounds).toEqual([]);
+    expect(result.current.admissionExamResults).toEqual([]);
+    expect(result.current.admissions).toHaveLength(admissionCount);
+    expect(readAuditEvents()).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        action: "admission_exam.round_delete",
+        after: null,
+        reason: "ลบข้อมูลรอบสอบตัวอย่าง",
+        resource: expect.objectContaining({
+          id: round.id,
+          organisationId: round.institutionId,
+        }),
+        before: expect.objectContaining({
+          round: expect.objectContaining({ id: round.id }),
+          results: expect.arrayContaining([
+            expect.objectContaining({ roundId: round.id }),
+          ]),
+        }),
+      }),
+    ]));
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem("mock_admission_exam_rounds")).toBe("[]");
+      expect(window.localStorage.getItem("mock_admission_exam_results")).toBe("[]");
+    });
+    unmount();
+
+    const remounted = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(remounted.result.current.isLoaded).toBe(true));
+    expect(remounted.result.current.admissionExamRounds).toEqual([]);
+    expect(remounted.result.current.admissionExamResults).toEqual([]);
+  });
+
+  it("rejects deleting an exam round from another institution", async () => {
+    const { result } = renderHook(() => useMockDb(), { wrapper });
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+    const round = result.current.admissionExamRounds[0];
+
+    expect(() => act(() => result.current.deleteAdmissionExamRound({
+      actor: chulaInstitutionActor,
+      roundId: round.id,
+      reason: "พยายามลบข้อมูลข้ามสถาบัน",
+    }))).toThrow("บัญชีนี้ไม่มีสิทธิ์จัดการรอบสอบของสถาบันดังกล่าว");
+    expect(result.current.admissionExamRounds).toEqual(DEFAULT_ADMISSION_EXAM_ROUNDS);
+    expect(result.current.admissionExamResults).toEqual(DEFAULT_ADMISSION_EXAM_RESULTS);
+    expect(readAuditEvents().some((event) => (
+      event.action === "admission_exam.round_delete"
+    ))).toBe(false);
+  });
+});
 
 describe("mock DB registration migration", () => {
   it("upgrades legacy registration records with history and credits", () => {
@@ -674,7 +812,7 @@ describe("mock DB Institution academic workflow", () => {
         .not.toContain('"section"');
       expect(window.localStorage.getItem("mock_course_offering_change_requests") ?? "")
         .not.toContain('"section"');
-      expect(window.localStorage.getItem("mock_db_schema_version")).toBe("8");
+      expect(window.localStorage.getItem("mock_db_schema_version")).toBe("10");
     });
     expect(normalizeCourseOfferingChangeRequests(JSON.parse(
       window.localStorage.getItem("mock_course_offering_change_requests") ?? "[]",
