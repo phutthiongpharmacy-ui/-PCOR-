@@ -1,2 +1,5 @@
-import SuperAdminGovernancePage from "@/roles/admin/features/governance/SuperAdminGovernancePage";
-export default function Page() { return <SuperAdminGovernancePage section="break-glass" />; }
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/admin/dashboard");
+}

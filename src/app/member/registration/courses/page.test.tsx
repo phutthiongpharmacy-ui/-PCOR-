@@ -26,7 +26,7 @@ vi.mock("@/roles/shared/features/license-eligibility", () => ({
 }));
 vi.mock("@/roles/member/features/registration/open-registration-catalog", () => ({
   buildOpenRegistrationCourses: () => [1, 2, 3, 4, 5].map((id) => ({
-    definition: { id: `course-${id}`, code: `TEST-${id}`, collegeCode: "CPHC", titleTh: `วิชาทดสอบ ${id}`, credits: 4, capacity: 10, enrolled: id === 5 ? 10 : 0 },
+    definition: { id: `course-${id}`, code: `CPhT-${300 + id}`, collegeCode: "วภท.", titleTh: `วิชาทดสอบ ${id}`, credits: 4, capacity: 10, enrolled: id === 5 ? 10 : 0 },
     offering: { id: `offering-${id}`, institutionId: "institution-test", term: "1/2569" },
     universityName: id === 1 ? "มหาวิทยาลัยมหิดล" : "สถาบันทดสอบ",
     institutionName: id === 1 ? "สถาบันฝึกอบรมโรงพยาบาลศิริราช" : "สถาบันทดสอบ",
@@ -46,7 +46,7 @@ function courseCard(number: number) {
 }
 
 describe("repeatable course registration interactions", () => {
-  it("shows the Mahidol owner consistently and links to the mock syllabus PDF", () => {
+  it("shows the Mahidol owner consistently and previews the mock syllabus PDF in a dialog", () => {
     render(<CourseRegistrationPage />);
 
     fireEvent.click(courseCard(1).getByRole("button", { name: "ดูรายละเอียด" }));
@@ -54,11 +54,17 @@ describe("repeatable course registration interactions", () => {
     expect(courseCard(1).getByText("หน่วยงานผู้ดูแล")).toBeTruthy();
     expect(courseCard(1).getAllByText("มหาวิทยาลัยมหิดล")).toHaveLength(2);
     expect(courseCard(1).queryByText("สถาบันฝึกอบรมโรงพยาบาลศิริราช")).toBeNull();
-    expect(courseCard(1).getByRole("link", { name: /เปิด Syllabus PDF/ }).getAttribute("href"))
+    fireEvent.click(courseCard(1).getByRole("button", { name: "Syllabus (.pdf)" }));
+
+    const syllabusDialog = within(screen.getByRole("dialog"));
+    expect(syllabusDialog.getByRole("heading", { name: "CPhT 301 · วิชาทดสอบ 1" })).toBeTruthy();
+    expect(syllabusDialog.getByText("Syllabus (.pdf)")).toBeTruthy();
+    expect(syllabusDialog.getByTitle("เอกสาร Syllabus วิชาทดสอบ 1").getAttribute("src"))
       .toBe("/documents/syllabi/mock-course-syllabus.pdf");
+    fireEvent.click(syllabusDialog.getByRole("button", { name: "ปิด" }));
 
     fireEvent.click(courseCard(2).getByRole("button", { name: "ดูรายละเอียด" }));
-    expect(courseCard(2).queryByRole("link", { name: /เปิด Syllabus PDF/ })).toBeNull();
+    expect(courseCard(2).queryByRole("button", { name: "Syllabus (.pdf)" })).toBeNull();
   });
 
   it("can select, confirm, remove and reselect repeatedly without writing registrations", () => {

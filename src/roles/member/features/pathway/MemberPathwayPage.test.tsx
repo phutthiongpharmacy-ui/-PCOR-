@@ -73,6 +73,11 @@ describe("MemberPathwayPage", () => {
     });
     expect(currentStage.getAttribute("aria-current")).toBe("step");
     expect(currentStage.getAttribute("aria-pressed")).toBe("true");
+    expect(currentStage.getAttribute("data-current")).toBe("true");
+    expect(within(currentStage).getAllByText("คุณอยู่ที่นี่").length).toBeGreaterThan(0);
+
+    const currentLocation = screen.getByLabelText("ตำแหน่งปัจจุบัน ขั้นที่ 4 จาก 9");
+    expect(within(currentLocation).getByText("ฝึกเฉพาะทาง ปี 2")).toBeTruthy();
   });
 
   it("lets the student inspect hard-gate and final-gate requirements", () => {
@@ -106,7 +111,7 @@ describe("MemberPathwayPage", () => {
     expect(finalGate.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("shows a glass summary on keyboard focus while keeping click for full details", async () => {
+  it("shows a solid, readable summary on keyboard focus while keeping click for full details", async () => {
     render(<MemberPathwayPage />);
 
     const roadmap = screen.getByRole("list", {
@@ -120,7 +125,11 @@ describe("MemberPathwayPage", () => {
 
     const preview = await screen.findByRole("tooltip");
     expect(preview.textContent).toBe("รายละเอียดย่อ ฝึกเฉพาะทาง ปี 3");
-    expect(await screen.findByText("ขั้นที่ 5")).toBeTruthy();
+    const stepLabel = await screen.findByText("ขั้นที่ 5");
+    const previewCard = stepLabel.closest("[data-side]");
+    expect(previewCard?.className).toContain("bg-popover");
+    expect(previewCard?.className).toContain("border-brand-border");
+    expect(previewCard?.className).not.toContain("glass-panel");
     expect(screen.getByText("0 / 32")).toBeTruthy();
 
     fireEvent.click(yearThree);

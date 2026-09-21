@@ -8,7 +8,6 @@ const superAdminNavigation = [
   { href: "/admin/terms", icon: "badge", label: "วาระผู้ดำรงตำแหน่ง" },
   { href: "/admin/integrations", icon: "hub", label: "การเชื่อมต่อระบบ" },
   { href: "/admin/audit", icon: "manage_search", label: "Audit Log" },
-  { href: "/admin/break-glass", icon: "emergency", label: "Break-glass" },
   { href: "/admin/settings", icon: "settings", label: "ตั้งค่าระบบ" },
 ] as const;
 

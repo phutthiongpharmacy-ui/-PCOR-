@@ -74,7 +74,6 @@ export default function SuperAdminDashboardPage() {
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p className="rounded-xl bg-success-soft p-3 text-success-on-soft">บัญชีผู้ใช้ · Role · Organisation · Resource · Settings · Integration · Audit</p>
             <p className="rounded-xl bg-warning-soft p-3 text-warning-on-soft">งานหลักสูตร การสอบ คำร้อง วิจัย ใบรับรอง การเงิน และเตรียมลงนาม อยู่ที่ Royal College Staff</p>
-            <p className="rounded-xl border border-danger-border bg-danger-soft p-3 text-danger">Break-glass ต้องระบุเหตุผลและถูกบันทึกทุกครั้ง</p>
           </CardContent>
         </Card>
       </div>

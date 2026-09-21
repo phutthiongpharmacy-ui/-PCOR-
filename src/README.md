@@ -38,7 +38,7 @@ src/
 
 Admin เดิมหมายถึง Super Admin ส่วนงานหลักสูตร การสอบ คำร้อง งานวิจัย ใบรับรอง ข่าวสาร Registration Operation การเงิน และการเตรียมเอกสารลงนาม เป็นความรับผิดชอบของ Royal College Staff ภายใต้ `/staff` ไม่มี Finance Officer เป็น Role แยก
 
-Super Admin เข้าถึงเฉพาะ route ด้าน governance ต่อไปนี้: `/admin/dashboard`, `/admin/users`, `/admin/scopes`, `/admin/organisations`, `/admin/terms`, `/admin/integrations`, `/admin/audit`, `/admin/break-glass` และ `/admin/settings`
+Super Admin เข้าถึงเฉพาะ route ด้าน governance ต่อไปนี้: `/admin/dashboard`, `/admin/users`, `/admin/scopes`, `/admin/organisations`, `/admin/terms`, `/admin/integrations`, `/admin/audit` และ `/admin/settings`
 
 ไฟล์ route งานธุรกิจเดิมใต้ `/admin` ยังอยู่ระหว่างการย้ายโครงสร้างเพื่อรักษาประวัติของโค้ด แต่ไม่อยู่ใน Navigation และถูก access gate ปฏิเสธเมื่อเปิด URL โดยตรง งานที่ใช้งานได้จริงต้องเข้าผ่าน `/staff` เท่านั้น
 

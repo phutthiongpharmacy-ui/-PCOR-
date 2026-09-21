@@ -48,7 +48,7 @@ type TeacherSection = "dashboard" | "courses" | "registrations" | "results" | "h
 const registrationActorLabel: Record<RegistrationActor, string> = {
   member: "ผู้เข้ารับการฝึกอบรม",
   student: "ผู้เข้ารับการฝึกอบรม",
-  teacher: "อาจารย์ผู้สอน",
+  teacher: "อาจารย์ประจำวิชา",
   registrar: "เจ้าหน้าที่ทะเบียน",
   royal_college_staff: "เจ้าหน้าที่ราชวิทยาลัย",
   system: "ระบบ",

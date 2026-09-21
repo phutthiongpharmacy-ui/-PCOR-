@@ -117,7 +117,7 @@ export default function AdminPresidentTermsPage() {
         <CardContent className="space-y-4 px-5">
           <div>
             <h2 className="text-base font-semibold text-admin-content">เพิ่มวาระใหม่</h2>
-            <p className="mt-1 text-xs text-admin-content-muted">วันสิ้นสุดเป็นขอบเขตแบบไม่รวมเวลานั้น เพื่อส่งต่อสิทธิ์ได้ต่อเนื่อง ผู้ดำรงตำแหน่งใช้ email ที่ระบุและรหัส 2323 เพื่อเข้าสู่ระบบในช่วงวาระ</p>
+            <p className="mt-1 text-xs text-admin-content-muted">วันสิ้นสุดเป็นขอบเขตแบบไม่รวมเวลานั้น เพื่อส่งต่อสิทธิ์ได้ต่อเนื่อง ผู้ดำรงตำแหน่งใช้ email ที่ระบุและรหัสทดลอง 2222 เพื่อเข้าสู่ระบบในช่วงวาระ</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1.5">

@@ -40,7 +40,6 @@ const SUPER_ADMIN_ROUTE_ALLOWLIST = [
   "/admin/terms",
   "/admin/integrations",
   "/admin/audit",
-  "/admin/break-glass",
   "/admin/settings",
 ] as const;
 

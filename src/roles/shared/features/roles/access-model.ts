@@ -107,7 +107,7 @@ export const COLLEGE_ORGANISATIONS = ORGANISATION_LIST.filter((organisation) => 
 
 export const ROLE_PRESENTATION: Record<SystemRole, { label: string; portal: string; home: string }> = {
   student: { label: "ผู้เข้ารับการฝึกอบรม", portal: "Student Portal", home: "/member/dashboard" },
-  teacher: { label: "อาจารย์ผู้สอน", portal: "Teacher Portal", home: "/teacher/dashboard" },
+  teacher: { label: "อาจารย์ประจำวิชา", portal: "Teacher Portal", home: "/teacher/dashboard" },
   institution_admin: { label: "ผู้ดูแลสถาบัน", portal: "Institution Portal", home: "/institution/dashboard" },
   royal_college_staff: { label: "เจ้าหน้าที่ราชวิทยาลัย", portal: "Staff Portal", home: "/staff/dashboard" },
   president: { label: "ประธาน / ผู้ลงนาม", portal: "President Portal", home: "/president/dashboard" },

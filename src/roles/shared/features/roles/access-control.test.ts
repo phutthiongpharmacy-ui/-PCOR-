@@ -192,11 +192,15 @@ describe("canonical portal access", () => {
       "/admin/terms",
       "/admin/integrations",
       "/admin/audit",
-      "/admin/break-glass",
       "/admin/settings",
     ]) {
       expect(canPortalSessionAccessArea(admin, "admin", pathname)).toBe(true);
     }
+  });
+
+  it("keeps the temporarily disabled Break-glass feature inaccessible", () => {
+    const admin = session("super_admin", ORGANISATIONS.system);
+    expect(canPortalSessionAccessArea(admin, "admin", "/admin/break-glass")).toBe(false);
   });
 
   it("denies Super Admin direct access to routine business routes", () => {

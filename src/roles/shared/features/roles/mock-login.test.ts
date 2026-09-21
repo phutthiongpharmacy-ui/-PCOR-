@@ -39,6 +39,22 @@ describe("portal login and session migration", () => {
     expect(Array.isArray(result.session.resourceScopes)).toBe(true);
   });
 
+  it.each([
+    ["ภ.12345", "student"],
+    ["student", "student"],
+    ["teacher", "teacher"],
+    ["teacher2", "teacher"],
+    ["teacher3", "teacher"],
+    ["institution", "institution_admin"],
+    ["officer", "royal_college_staff"],
+    ["finance", "royal_college_staff"],
+    ["president", "president"],
+    ["royalpresident", "president"],
+    ["admin", "super_admin"],
+  ] as const)("accepts the alternate demo password for %s", (identifier, role) => {
+    expect(resolvePortalLogin(identifier, "2222").session.role).toBe(role);
+  });
+
   it("binds every Student entry path to the current Student resource owner", () => {
     expect(resolvePortalLogin("ภ.12345", "2323").session).toMatchObject({
       role: "student",
@@ -52,6 +68,7 @@ describe("portal login and session migration", () => {
     ["ภ.99999", "2323"],
     ["ภ.12345", "รหัสไม่ถูกต้อง"],
     ["student@example.com", "2323"],
+    ["admin", "2223"],
   ])("rejects unknown or invalid professional credentials without a Student fallback", (identifier, password) => {
     expect(() => resolvePortalLogin(identifier, password)).toThrowError("ข้อมูลเข้าสู่ระบบไม่ถูกต้อง");
   });
@@ -99,11 +116,11 @@ describe("portal login and session migration", () => {
     });
   });
 
-  it("lets an active assigned President sign in with assignment scope", () => {
+  it.each(["2323", "2222"])("lets an active assigned President sign in with assignment scope using %s", (password) => {
     const now = Date.now();
     const result = resolvePortalLogin(
       "new.president@example.org",
-      "2323",
+      password,
       null,
       [{
         id: "term-current",

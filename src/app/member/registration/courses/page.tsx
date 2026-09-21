@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -54,6 +55,7 @@ export default function CourseRegistrationPage() {
   const [filters, setFilters] = useState<Required<OpenRegistrationFilters>>(defaultFilters);
   const [now, setNow] = useState(() => Date.now());
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [syllabusPreviewCourse, setSyllabusPreviewCourse] = useState<OpenRegistrationCourse | null>(null);
   const confirmationTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -236,11 +238,14 @@ export default function CourseRegistrationPage() {
                           <Progress value={course.definition.enrolled} max={course.definition.capacity} tone={course.definition.enrolled >= course.definition.capacity ? "warning" : "brand"} className="mt-2" aria-label={`ลงทะเบียนแล้ว ${course.definition.enrolled} จาก ${course.definition.capacity} คน วิชา ${formatCollegeCourseCode(course.definition.code, course.definition.collegeCode)}`} />
                         </div>
                         {course.syllabus ? (
-                          <Button asChild variant="outline" className="min-h-11 shrink-0">
-                            <a href={course.syllabus.url} target="_blank" rel="noopener noreferrer">
-                              <span aria-hidden="true" className="material-symbols-outlined text-lg">picture_as_pdf</span>
-                              เปิด Syllabus PDF
-                            </a>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="min-h-11 shrink-0"
+                            onClick={() => setSyllabusPreviewCourse(course)}
+                          >
+                            <span aria-hidden="true" className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                            Syllabus (.pdf)
                           </Button>
                         ) : null}
                       </div>
@@ -252,6 +257,40 @@ export default function CourseRegistrationPage() {
           </div>
         )}
       </section>
+
+      <Dialog
+        open={Boolean(syllabusPreviewCourse?.syllabus)}
+        onOpenChange={(open) => {
+          if (!open) setSyllabusPreviewCourse(null);
+        }}
+      >
+        <DialogContent className="flex h-[min(90dvh,900px)] max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:max-w-5xl sm:p-6">
+          <DialogHeader className="shrink-0 pr-12">
+            <DialogTitle className="text-balance text-xl font-semibold leading-7">
+              {syllabusPreviewCourse
+                ? `${formatCollegeCourseCode(syllabusPreviewCourse.definition.code, syllabusPreviewCourse.definition.collegeCode)} · ${syllabusPreviewCourse.definition.titleTh}`
+                : "เอกสารประกอบรายวิชา"}
+            </DialogTitle>
+            <DialogDescription className="font-normal leading-6">
+              Syllabus (.pdf)
+            </DialogDescription>
+          </DialogHeader>
+
+          {syllabusPreviewCourse?.syllabus ? (
+            <iframe
+              title={`เอกสาร Syllabus ${syllabusPreviewCourse.definition.titleTh}`}
+              src={syllabusPreviewCourse.syllabus.url}
+              className="min-h-0 w-full flex-1 rounded-xl border border-border bg-background"
+            />
+          ) : null}
+
+          <DialogFooter className="shrink-0">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" className="min-h-11">ปิด</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={confirmationOpen} onOpenChange={handleConfirmationOpenChange}>
         <DialogContent

@@ -153,6 +153,10 @@ export const programsData = [
     credits: 20,
     duration: "5 ปี (ต่ออายุได้)",
     students: 450,
+    document: {
+      fileName: "01-consumer-protection-authorization.pdf",
+      url: "/documents/programs/01-consumer-protection-authorization.pdf",
+    },
   },
   {
     id: 2,
@@ -165,6 +169,10 @@ export const programsData = [
     credits: 24,
     duration: "2-3 ปี",
     students: 120,
+    document: {
+      fileName: "02-pharmacy-administration-board.pdf",
+      url: "/documents/programs/02-pharmacy-administration-board.pdf",
+    },
   },
   {
     id: 3,
@@ -177,6 +185,10 @@ export const programsData = [
     credits: 36,
     duration: "2-3 ปี",
     students: 85,
+    document: {
+      fileName: "03-pharmacotherapy-board.pdf",
+      url: "/documents/programs/03-pharmacotherapy-board.pdf",
+    },
   },
   {
     id: 4,
@@ -189,6 +201,10 @@ export const programsData = [
     credits: 0,
     duration: "ประเมินตามเกณฑ์",
     students: 280,
+    document: {
+      fileName: "04-community-pharmacy-authorization.pdf",
+      url: "/documents/programs/04-community-pharmacy-authorization.pdf",
+    },
   },
   {
     id: 5,
@@ -201,6 +217,10 @@ export const programsData = [
     credits: 18,
     duration: "1-2 ปี",
     students: 150,
+    document: {
+      fileName: "05-herbal-product-management-certificate.pdf",
+      url: "/documents/programs/05-herbal-product-management-certificate.pdf",
+    },
   },
 ];
 
