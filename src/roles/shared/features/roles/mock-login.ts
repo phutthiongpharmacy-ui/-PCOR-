@@ -29,11 +29,13 @@ export interface PortalSession {
   collegeCode?: string;
 }
 
+const DEMO_PASSWORD = "2222";
+
 const roleAccounts = [
   {
     identifier: "ภ.12345",
     aliases: ["student"],
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "student",
     displayName: "ภก. สมชาย ใจดี",
     userId: "วภท-2568-001",
@@ -42,7 +44,7 @@ const roleAccounts = [
   },
   {
     identifier: "admin",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "super_admin",
     displayName: "System Admin",
     userId: "super-admin",
@@ -51,7 +53,7 @@ const roleAccounts = [
   },
   {
     identifier: "teacher",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "teacher",
     displayName: "อ. ภก. กิตติพงศ์ วัฒนเภสัช",
     userId: "teacher-001",
@@ -60,7 +62,7 @@ const roleAccounts = [
   },
   {
     identifier: "teacher2",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "teacher",
     displayName: "อ. ภญ. ชนิดา ศรีสุข",
     userId: "teacher-002",
@@ -69,7 +71,7 @@ const roleAccounts = [
   },
   {
     identifier: "teacher3",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "teacher",
     displayName: "อ. ภก. ธีรภัทร พรหมรักษ์",
     userId: "teacher-003",
@@ -78,7 +80,7 @@ const roleAccounts = [
   },
   {
     identifier: "institution",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "institution_admin",
     displayName: "ภก. วิชาญ อัครเวช",
     userId: "institution-admin-001",
@@ -87,7 +89,7 @@ const roleAccounts = [
   },
   {
     identifier: "officer",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "royal_college_staff",
     displayName: "ภญ. ปาริชาติ สุขเกษม",
     userId: "staff-001",
@@ -96,7 +98,7 @@ const roleAccounts = [
   },
   {
     identifier: "finance",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "royal_college_staff",
     displayName: "ภญ. ปาริชาติ สุขเกษม",
     userId: "staff-001",
@@ -105,7 +107,7 @@ const roleAccounts = [
   },
   {
     identifier: "president",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "president",
     displayName: "ภก. รศ. ดร. ธนกฤต ศรีวิชัย",
     userId: "president-vpt-current",
@@ -114,7 +116,7 @@ const roleAccounts = [
   },
   {
     identifier: "royalpresident",
-    password: "2323",
+    password: DEMO_PASSWORD,
     role: "president",
     displayName: "ภญ. รศ. ดร. อรทัย พิทักษ์วิชาชีพ",
     userId: "president-rpc-current",
@@ -131,12 +133,6 @@ const roleAccounts = [
   organisation: OrganisationScope;
   resourceScopes: readonly string[];
 }[];
-
-const ALTERNATE_DEMO_PASSWORD = "2222";
-
-function acceptsPortalPassword(expectedPassword: string, submittedPassword: string) {
-  return submittedPassword === expectedPassword || submittedPassword === ALTERNATE_DEMO_PASSWORD;
-}
 
 export const PORTAL_SESSION_KEY = "royal-college.portal-session.v2";
 const LEGACY_PORTAL_SESSION_KEY = "royal-college.portal-session.v1";
@@ -189,7 +185,7 @@ export function resolvePortalLogin(
   accessAssignments?: readonly UserAccessAssignment[],
 ) {
   const normalizedIdentifier = identifier.trim().toLowerCase();
-  const assignedPresident = acceptsPortalPassword("2323", password)
+  const assignedPresident = password === DEMO_PASSWORD
     ? roleAssignments.find((assignment) => (
         assignment.role === "president" &&
         isRoleAssignmentActive(assignment) &&
@@ -214,7 +210,7 @@ export function resolvePortalLogin(
 
   const account = roleAccounts.find((candidate) => (
     (candidate.identifier === normalizedIdentifier || ("aliases" in candidate && (candidate.aliases as readonly string[]).includes(normalizedIdentifier))) &&
-    acceptsPortalPassword(candidate.password, password)
+    candidate.password === password
   ));
   const configuredAssignments = accessAssignments ?? (
     typeof window === "undefined"

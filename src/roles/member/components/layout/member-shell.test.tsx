@@ -18,7 +18,7 @@ describe("member shell", () => {
     push.mockReset();
     pathname = "/member/dashboard";
     window.localStorage.clear();
-    savePortalSession(resolvePortalLogin("ภ.12345", "2323").session);
+    savePortalSession(resolvePortalLogin("ภ.12345", "2222").session);
   });
 
   afterEach(cleanup);

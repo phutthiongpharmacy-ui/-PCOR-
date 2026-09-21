@@ -22,14 +22,14 @@ describe("portal login and session migration", () => {
   });
 
   it.each([
-    ["ภ.12345", "2323", "student", "/member/dashboard"],
-    ["student", "2323", "student", "/member/dashboard"],
-    ["teacher", "2323", "teacher", "/teacher/dashboard"],
-    ["institution", "2323", "institution_admin", "/institution/dashboard"],
-    ["officer", "2323", "royal_college_staff", "/staff/dashboard"],
-    ["president", "2323", "president", "/president/dashboard"],
-    ["royalpresident", "2323", "president", "/president/dashboard"],
-    ["admin", "2323", "super_admin", "/admin/dashboard"],
+    ["ภ.12345", "2222", "student", "/member/dashboard"],
+    ["student", "2222", "student", "/member/dashboard"],
+    ["teacher", "2222", "teacher", "/teacher/dashboard"],
+    ["institution", "2222", "institution_admin", "/institution/dashboard"],
+    ["officer", "2222", "royal_college_staff", "/staff/dashboard"],
+    ["president", "2222", "president", "/president/dashboard"],
+    ["royalpresident", "2222", "president", "/president/dashboard"],
+    ["admin", "2222", "super_admin", "/admin/dashboard"],
   ] as const)("routes %s to its canonical role home", (identifier, password, role, destination) => {
     const result = resolvePortalLogin(identifier, password);
     expect(result.session.role).toBe(role);
@@ -51,12 +51,12 @@ describe("portal login and session migration", () => {
     ["president", "president"],
     ["royalpresident", "president"],
     ["admin", "super_admin"],
-  ] as const)("accepts the alternate demo password for %s", (identifier, role) => {
+  ] as const)("accepts the demo password for %s", (identifier, role) => {
     expect(resolvePortalLogin(identifier, "2222").session.role).toBe(role);
   });
 
   it("binds every Student entry path to the current Student resource owner", () => {
-    expect(resolvePortalLogin("ภ.12345", "2323").session).toMatchObject({
+    expect(resolvePortalLogin("ภ.12345", "2222").session).toMatchObject({
       role: "student",
       userId: "วภท-2568-001",
       displayName: "ภก. สมชาย ใจดี",
@@ -65,32 +65,32 @@ describe("portal login and session migration", () => {
   });
 
   it.each([
-    ["ภ.99999", "2323"],
+    ["ภ.99999", "2222"],
     ["ภ.12345", "รหัสไม่ถูกต้อง"],
-    ["student@example.com", "2323"],
-    ["admin", "2223"],
+    ["student@example.com", "2222"],
+    ["admin", "1111"],
   ])("rejects unknown or invalid professional credentials without a Student fallback", (identifier, password) => {
     expect(() => resolvePortalLogin(identifier, password)).toThrowError("ข้อมูลเข้าสู่ระบบไม่ถูกต้อง");
   });
 
   it("maps the old finance demo account into Royal College Staff", () => {
-    expect(resolvePortalLogin("finance", "2323")).toMatchObject({
+    expect(resolvePortalLogin("finance", "2222")).toMatchObject({
       destination: "/staff/dashboard",
       session: { role: "royal_college_staff", userId: "staff-001" },
     });
   });
 
   it("preserves a same-workspace return path and rejects another role path", () => {
-    expect(resolvePortalLogin("teacher", "2323", "/teacher/courses").destination)
+    expect(resolvePortalLogin("teacher", "2222", "/teacher/courses").destination)
       .toBe("/teacher/courses");
-    expect(resolvePortalLogin("teacher", "2323", "/admin/settings").destination)
+    expect(resolvePortalLogin("teacher", "2222", "/admin/settings").destination)
       .toBe("/teacher/dashboard");
   });
 
   it("grants the Teacher demo account the explicit course proposal resource", () => {
-    expect(resolvePortalLogin("teacher", "2323").session.resourceScopes)
+    expect(resolvePortalLogin("teacher", "2222").session.resourceScopes)
       .toContain("course:proposal");
-    expect(resolvePortalLogin("teacher", "2323").session.resourceScopes)
+    expect(resolvePortalLogin("teacher", "2222").session.resourceScopes)
       .toContain("course:assigned");
   });
 
@@ -105,7 +105,7 @@ describe("portal login and session migration", () => {
       },
     ));
 
-    expect(resolvePortalLogin("teacher", "2323")).toMatchObject({
+    expect(resolvePortalLogin("teacher", "2222")).toMatchObject({
       destination: "/staff/dashboard",
       session: {
         userId: "teacher-001",
@@ -116,11 +116,11 @@ describe("portal login and session migration", () => {
     });
   });
 
-  it.each(["2323", "2222"])("lets an active assigned President sign in with assignment scope using %s", (password) => {
+  it("lets an active assigned President sign in with the demo password", () => {
     const now = Date.now();
     const result = resolvePortalLogin(
       "new.president@example.org",
-      password,
+      "2222",
       null,
       [{
         id: "term-current",
@@ -231,7 +231,7 @@ describe("portal login and session migration", () => {
   it("emits a same-window event whenever a session is saved", () => {
     const listener = vi.fn();
     window.addEventListener(PORTAL_SESSION_EVENT, listener);
-    const session = resolvePortalLogin("teacher", "2323").session;
+    const session = resolvePortalLogin("teacher", "2222").session;
     savePortalSession(session);
     expect(readPortalSession()).toEqual(session);
     expect(listener).toHaveBeenCalledOnce();

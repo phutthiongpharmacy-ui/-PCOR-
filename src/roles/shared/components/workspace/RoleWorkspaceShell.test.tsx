@@ -27,7 +27,7 @@ describe("RoleWorkspaceShell", () => {
     pathname = "/teacher/courses/offering-001";
     push.mockReset();
     window.localStorage.clear();
-    savePortalSession(resolvePortalLogin("teacher", "2323").session);
+    savePortalSession(resolvePortalLogin("teacher", "2222").session);
   });
 
   afterEach(cleanup);

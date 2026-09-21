@@ -30,7 +30,7 @@ describe("usePortalSession", () => {
     await waitFor(() => expect(screen.getByTestId("session").textContent).toBe("none:none"));
 
     act(() => {
-      savePortalSession(resolvePortalLogin("teacher", "2323").session);
+      savePortalSession(resolvePortalLogin("teacher", "2222").session);
     });
 
     await waitFor(() => expect(screen.getByTestId("session").textContent)
@@ -38,7 +38,7 @@ describe("usePortalSession", () => {
   });
 
   it("normalizes a valid stored session without dispatching during render", async () => {
-    const session = resolvePortalLogin("officer", "2323").session;
+    const session = resolvePortalLogin("officer", "2222").session;
     const reorderedSession = {
       signedInAt: session.signedInAt,
       resourceScopes: session.resourceScopes,

@@ -41,7 +41,7 @@ describe("member login page", () => {
     render(<LoginPage />);
 
     fireEvent.change(screen.getByLabelText("เลขที่ใบประกอบวิชาชีพ"), { target: { value: "ภ.99999" } });
-    fireEvent.change(screen.getByLabelText("รหัสผ่าน", { selector: "input" }), { target: { value: "2323" } });
+    fireEvent.change(screen.getByLabelText("รหัสผ่าน", { selector: "input" }), { target: { value: "2222" } });
     fireEvent.submit(screen.getByRole("button", { name: "เข้าสู่ระบบ" }).closest("form")!);
 
     expect(screen.getByRole("alert").textContent).toContain("ข้อมูลเข้าสู่ระบบไม่ถูกต้อง");
@@ -55,7 +55,7 @@ describe("member login page", () => {
     render(<LoginPage />);
 
     fireEvent.change(screen.getByLabelText("เลขที่ใบประกอบวิชาชีพ"), { target: { value: "ภ.12345" } });
-    fireEvent.change(screen.getByLabelText("รหัสผ่าน", { selector: "input" }), { target: { value: "2323" } });
+    fireEvent.change(screen.getByLabelText("รหัสผ่าน", { selector: "input" }), { target: { value: "2222" } });
     fireEvent.submit(screen.getByRole("button", { name: "เข้าสู่ระบบ" }).closest("form")!);
     expect(JSON.parse(window.localStorage.getItem(PORTAL_SESSION_KEY)!)).toMatchObject({
       userId: "วภท-2568-001",
@@ -65,19 +65,16 @@ describe("member login page", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("accepts the alternate demo password", () => {
+  it("rejects a password other than the demo password", () => {
     render(<LoginPage />);
 
     fireEvent.change(screen.getByLabelText("เลขที่ใบประกอบวิชาชีพ"), { target: { value: "student" } });
-    fireEvent.change(screen.getByLabelText("รหัสผ่าน", { selector: "input" }), { target: { value: "2222" } });
+    fireEvent.change(screen.getByLabelText("รหัสผ่าน", { selector: "input" }), { target: { value: "1111" } });
     fireEvent.submit(screen.getByRole("button", { name: "เข้าสู่ระบบ" }).closest("form")!);
 
-    expect(JSON.parse(window.localStorage.getItem(PORTAL_SESSION_KEY)!)).toMatchObject({
-      userId: "วภท-2568-001",
-      role: "student",
-    });
-    expect(push).toHaveBeenCalledWith("/member/dashboard");
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(window.localStorage.getItem(PORTAL_SESSION_KEY)).toBeNull();
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain("ข้อมูลเข้าสู่ระบบไม่ถูกต้อง");
   });
 
   it("exposes public contact and terms links in the login footer", () => {
