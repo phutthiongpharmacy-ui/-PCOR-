@@ -7,16 +7,15 @@ import type {
   CourseOffering,
 } from "@/roles/shared/features/academic/model";
 import {
+  COURSE_SCHEDULE_DETAILS,
+  formatCourseSchedule,
+} from "@/roles/shared/features/academic/course-schedule";
+import {
   getUniversityNameForInstitution,
 } from "@/roles/shared/data/university-directory";
 import { formatCollegeCourseCode } from "@/roles/shared/data/college-directory";
 
 type NormalCourseDefinition = Extract<CourseDefinition, { kind: "course" }>;
-
-interface OpenRegistrationPresentationDetails {
-  schedule: string;
-  room: string;
-}
 
 export type OpenRegistrationCourse = {
   definition: NormalCourseDefinition;
@@ -42,39 +41,6 @@ export type OpenRegistrationFilterOptions = {
   universities: string[];
   academicYears: string[];
   terms: string[];
-};
-
-const OPEN_REGISTRATION_PRESENTATION_DETAILS: Readonly<
-  Record<string, OpenRegistrationPresentationDetails>
-> = {
-  "offering-cpc-101": {
-    schedule: "วันเสาร์ 09:00–12:00 น.",
-    room: "ห้องเรียน 301 อาคารเภสัชศาสตร์",
-  },
-  "offering-admin-401": {
-    schedule: "วันอาทิตย์ 09:00–16:00 น.",
-    room: "ห้องประชุม 2 อาคารบริหารการศึกษา",
-  },
-  "offering-community-201": {
-    schedule: "วันพุธ 18:00–21:00 น.",
-    room: "ห้องเรียน 204 อาคารบริการสุขภาพชุมชน",
-  },
-  "offering-herbal-501": {
-    schedule: "วันเสาร์ 13:00–16:00 น.",
-    room: "ห้องปฏิบัติการเภสัชเวท 2",
-  },
-  "offering-vpt-301": {
-    schedule: "วันจันทร์ 09:00–12:00 น.",
-    room: "ห้องบรรยาย 1 อาคารศูนย์การแพทย์",
-  },
-  "offering-vpt-302": {
-    schedule: "วันพุธ 13:00–16:00 น.",
-    room: "หอผู้ป่วยอายุรกรรม ชั้น 12",
-  },
-  "offering-vpt-303": {
-    schedule: "วันศุกร์ 09:00–12:00 น.",
-    room: "ห้องสัมมนาวิจัย 3",
-  },
 };
 
 const activeNormalCourseByCode = new Map(
@@ -104,7 +70,7 @@ export function buildOpenRegistrationCourses(
   );
 
   return offerings.flatMap((offering) => {
-    const presentation = OPEN_REGISTRATION_PRESENTATION_DETAILS[offering.id];
+    const scheduleDetails = COURSE_SCHEDULE_DETAILS[offering.id];
     const definition = activeNormalCourseByCode.get(offering.courseCode);
     const institution = institutionById.get(offering.institutionId);
     const universityName = getUniversityNameForInstitution(offering.institutionId) ?? institution?.name;
@@ -127,8 +93,10 @@ export function buildOpenRegistrationCourses(
       universityName,
       academicYear: academicTerm.academicYear,
       term: academicTerm.term,
-      schedule: presentation?.schedule ?? "สถาบันจะแจ้งวันและเวลา",
-      room: presentation?.room ?? "สถาบันจะแจ้งสถานที่เรียน",
+      schedule: scheduleDetails
+        ? formatCourseSchedule(scheduleDetails)
+        : "สถาบันจะแจ้งวันและเวลา",
+      room: scheduleDetails?.room ?? "สถาบันจะแจ้งสถานที่เรียน",
     }];
   });
 }

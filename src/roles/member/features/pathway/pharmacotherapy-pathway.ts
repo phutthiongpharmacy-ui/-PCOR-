@@ -25,6 +25,209 @@ export type PharmacotherapyPathwayStage = {
   note?: string;
 };
 
+export type CurriculumRequirementMode = "required" | "choose_one";
+
+export type PharmacotherapySpecialtyOption = {
+  code: string;
+  titleTh: string;
+  titleEn: string;
+};
+
+export type PharmacotherapyCurriculumComponent = {
+  id: string;
+  code: string;
+  titleTh: string;
+  titleEn: string;
+  officialCategory: string;
+  totalCredits: number;
+  creditBreakdown: string;
+  hours: string;
+  description: string;
+  requirementMode: CurriculumRequirementMode;
+  options?: readonly PharmacotherapySpecialtyOption[];
+  source: string;
+};
+
+export type StageCurriculumAllocation = {
+  componentId: string;
+  allocatedCredits: number;
+  allocatedHours?: string;
+  note?: string;
+};
+
+export type StageCurriculumItem = PharmacotherapyCurriculumComponent &
+  StageCurriculumAllocation;
+
+const specializedResidencyOptions = [
+  { code: "01-2401", titleTh: "อายุรกรรม", titleEn: "Internal Medicine" },
+  { code: "01-2402", titleTh: "กุมารเวชกรรม", titleEn: "Pediatrics" },
+  { code: "01-2403", titleTh: "โภชนศาสตร์คลินิก", titleEn: "Clinical Nutrition" },
+  { code: "01-2404", titleTh: "เภสัชจลนพลศาสตร์คลินิก", titleEn: "Clinical Pharmacokinetics" },
+  { code: "01-2405", titleTh: "โรคติดเชื้อ", titleEn: "Infectious Diseases" },
+  { code: "01-2406", titleTh: "โรคทางจิตเวช", titleEn: "Psychiatric Diseases" },
+  { code: "01-2407", titleTh: "เภสัชกรรมชุมชน", titleEn: "Community Pharmacy" },
+  { code: "01-2408", titleTh: "โรคทางระบบประสาท", titleEn: "Neurological Diseases" },
+  { code: "01-2409", titleTh: "โรคไต", titleEn: "Nephrology" },
+  { code: "01-2410", titleTh: "ผู้ป่วยภาวะวิกฤติ", titleEn: "Critical Care" },
+  { code: "01-2411", titleTh: "โรคหัวใจและหลอดเลือด", titleEn: "Cardiology" },
+  { code: "01-2412", titleTh: "ผู้ป่วยโรคมะเร็ง", titleEn: "Oncology" },
+  { code: "01-2413", titleTh: "ผู้ป่วยสูงอายุ", titleEn: "Geriatric Pharmacotherapy" },
+] as const satisfies readonly PharmacotherapySpecialtyOption[];
+
+// Course names, credits, hours and categories are transcribed from the
+// Board Certified Pharmacotherapy Training Program manual (2568), pp. 59-68.
+export const pharmacotherapyCurriculumComponents = [
+  {
+    id: "research-methodology",
+    code: "01-1101",
+    titleTh: "ระเบียบวิธีวิจัยและชีวสถิติสำหรับเภสัชกรประจำบ้าน",
+    titleEn: "Research Methodology & Biostatistics for Pharmacy Resident",
+    officialCategory: "หมวดที่ 1 · วิชาบังคับพื้นฐาน",
+    totalCredits: 4,
+    creditBreakdown: "4 (3-1)",
+    hours: "ทฤษฎี 45 ชั่วโมง · ปฏิบัติ 45 ชั่วโมง",
+    description: "ออกแบบการศึกษา ประมาณขนาดตัวอย่าง และวิเคราะห์ข้อมูลทางสุขภาพและการบริบาลทางเภสัชกรรม",
+    requirementMode: "required",
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 61 และ 64",
+  },
+  {
+    id: "communication-skills",
+    code: "01-1201",
+    titleTh: "ทักษะการสื่อสารในการบริบาลทางเภสัชกรรม",
+    titleEn: "Communication Skills in Pharmaceutical Care",
+    officialCategory: "หมวดที่ 2 · วิชาพื้นฐานวิชาชีพ",
+    totalCredits: 2,
+    creditBreakdown: "2 (1-1)",
+    hours: "ทฤษฎี 15 ชั่วโมง · ปฏิบัติ 45 ชั่วโมง",
+    description: "การสื่อสารกับผู้ป่วยและบุคลากรสุขภาพ การเขียน การพูด การสัมภาษณ์ และจริยธรรมในการสื่อสาร",
+    requirementMode: "required",
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 61 และ 64",
+  },
+  {
+    id: "current-topics-1",
+    code: "01-1301",
+    titleTh: "หัวข้อปัจจุบันในเภสัชบำบัด 1",
+    titleEn: "Current Topics in Pharmacotherapy 1",
+    officialCategory: "หมวดที่ 3 · วิชาเฉพาะ",
+    totalCredits: 3,
+    creditBreakdown: "3 (2-1)",
+    hours: "ทฤษฎี 30 ชั่วโมง · ปฏิบัติ 45 ชั่วโมง",
+    description: "การใช้ยาในโรคระบบสำคัญ การวางแผนรักษา การติดตามผล อาการไม่พึงประสงค์ และการให้คำปรึกษา",
+    requirementMode: "required",
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 61 และ 64",
+  },
+  {
+    id: "current-topics-2",
+    code: "01-1302",
+    titleTh: "หัวข้อปัจจุบันในเภสัชบำบัด 2",
+    titleEn: "Current Topics in Pharmacotherapy 2",
+    officialCategory: "หมวดที่ 3 · วิชาเฉพาะ",
+    totalCredits: 3,
+    creditBreakdown: "3 (2-1)",
+    hours: "ทฤษฎี 30 ชั่วโมง · ปฏิบัติ 45 ชั่วโมง",
+    description: "การศึกษาต่อเนื่องจากหัวข้อปัจจุบันในเภสัชบำบัด 1",
+    requirementMode: "required",
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 61 และ 64",
+  },
+  {
+    id: "systematic-clinical-skills",
+    code: "01-1303",
+    titleTh: "การประเมินผู้ป่วยอย่างเป็นระบบและทักษะทางคลินิกในการบริบาลทางเภสัชกรรม",
+    titleEn: "Systematic Approach & Clinical Skills in Pharmaceutical Care",
+    officialCategory: "หมวดที่ 3 · วิชาเฉพาะ",
+    totalCredits: 4,
+    creditBreakdown: "4 (2-2)",
+    hours: "ทฤษฎี 30 ชั่วโมง · ปฏิบัติ 90 ชั่วโมง",
+    description: "กระบวนการคิดอย่างเป็นระบบ การแก้ปัญหา การตัดสินใจทางคลินิก การซักประวัติ และการประเมินผลตรวจ",
+    requirementMode: "required",
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 61 และ 65",
+  },
+  {
+    id: "general-residency",
+    code: "01-1401",
+    titleTh: "การฝึกอบรมเภสัชกรประจำบ้านด้านเภสัชบำบัด",
+    titleEn: "Residency in Pharmacotherapy Training",
+    officialCategory: "หมวดที่ 4 · ฝึกปฏิบัติงาน",
+    totalCredits: 21,
+    creditBreakdown: "21 (0-21)",
+    hours: "ฝึกปฏิบัติงาน 960 ชั่วโมง · 32 สัปดาห์",
+    description: "ฝึกบริบาลทางเภสัชกรรมในหอผู้ป่วยอายุรกรรม ประเมินการใช้ยา ติดตามการรักษา และป้องกันอาการไม่พึงประสงค์",
+    requirementMode: "required",
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 62 และ 65",
+  },
+  {
+    id: "specialized-residency",
+    code: "01-2401–01-2413",
+    titleTh: "การฝึกอบรมเภสัชกรประจำบ้านด้านเภสัชบำบัดเฉพาะทาง",
+    titleEn: "Specialized Residency in Pharmacotherapy Training",
+    officialCategory: "หมวดที่ 4 · ฝึกปฏิบัติงานเฉพาะทาง",
+    totalCredits: 64,
+    creditBreakdown: "64 (0-64)",
+    hours: "ฝึกปฏิบัติงานรวม 2,880 ชั่วโมง · 96 สัปดาห์",
+    description: "ฝึกบริบาลทางเภสัชกรรมในสาขาเฉพาะทางที่เลือกต่อเนื่องตลอดปี 2 และปี 3",
+    requirementMode: "choose_one",
+    options: specializedResidencyOptions,
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 62 และ 65-68",
+  },
+  {
+    id: "research-fellowship",
+    code: "01-4501",
+    titleTh: "การฝึกอบรมด้านการทำวิจัยเชิงปฏิบัติการ",
+    titleEn: "Pharmacy Research Fellowship Training",
+    officialCategory: "หมวดที่ 5 · การวิจัย",
+    totalCredits: 32,
+    creditBreakdown: "32 (0-32)",
+    hours: "ฝึกปฏิบัติงาน 1,440 ชั่วโมง",
+    description: "ทำวิจัยเชิงปฏิบัติการในสาขาเฉพาะทางที่เลือกไว้ในปี 2 และปี 3",
+    requirementMode: "required",
+    source: "คู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59, 62 และ 68",
+  },
+] as const satisfies readonly PharmacotherapyCurriculumComponent[];
+
+export const pharmacotherapyStageCurriculumAllocations = {
+  "year-1": [
+    { componentId: "research-methodology", allocatedCredits: 4 },
+    { componentId: "communication-skills", allocatedCredits: 2 },
+    { componentId: "current-topics-1", allocatedCredits: 3 },
+    { componentId: "current-topics-2", allocatedCredits: 3 },
+    { componentId: "systematic-clinical-skills", allocatedCredits: 4 },
+    { componentId: "general-residency", allocatedCredits: 21 },
+  ],
+  "year-2": [
+    {
+      componentId: "specialized-residency",
+      allocatedCredits: 32,
+      allocatedHours: "1,440 ชั่วโมงในปีนี้",
+      note: "เป็นส่วนแรกของรายวิชา 64 หน่วยกิตที่เรียนต่อเนื่องในปี 2-3",
+    },
+  ],
+  "year-3": [
+    {
+      componentId: "specialized-residency",
+      allocatedCredits: 32,
+      allocatedHours: "1,440 ชั่วโมงในปีนี้",
+      note: "เป็นส่วนที่สองของรายวิชา 64 หน่วยกิตที่เรียนต่อเนื่องในปี 2-3",
+    },
+  ],
+  "year-4": [
+    { componentId: "research-fellowship", allocatedCredits: 32 },
+  ],
+} as const satisfies Record<string, readonly StageCurriculumAllocation[]>;
+
+export function curriculumForPathwayStage(stageId: string): StageCurriculumItem[] {
+  const allocations = pharmacotherapyStageCurriculumAllocations[
+    stageId as keyof typeof pharmacotherapyStageCurriculumAllocations
+  ] ?? [];
+
+  return allocations.map((allocation) => {
+    const component = pharmacotherapyCurriculumComponents.find(
+      (item) => item.id === allocation.componentId,
+    );
+    if (!component) throw new Error(`Unknown pharmacotherapy component: ${allocation.componentId}`);
+    return { ...component, ...allocation };
+  });
+}
+
 export const pharmacotherapyPathwaySummary = {
   programName:
     "วุฒิบัตรแสดงความรู้ความชำนาญในการประกอบวิชาชีพเภสัชกรรม สาขาเภสัชบำบัด",

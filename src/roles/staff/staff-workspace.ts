@@ -15,5 +15,4 @@ export const STAFF_NAV_ITEMS: readonly WorkspaceNavItem[] = [
   { href: "/staff/finance", icon: "payments", label: "การเงิน", section: ACTION_SECTION },
   { href: "/staff/signatures", icon: "draw", label: "เตรียมเอกสารลงนาม", section: ACTION_SECTION },
   { href: "/staff/registrations", icon: "fact_check", label: "ติดตามการลงทะเบียน", section: READ_ONLY_SECTION },
-  { href: "/staff/audit", icon: "history", label: "ประวัติงานธุรกิจ", section: READ_ONLY_SECTION },
 ] as const;

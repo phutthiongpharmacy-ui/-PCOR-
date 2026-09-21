@@ -17,10 +17,12 @@ import { PageShell } from "@/roles/shared/components/layout/PageShell";
 import { WorkspaceHeader } from "@/roles/shared/components/workspace/WorkspacePrimitives";
 
 import {
+  curriculumForPathwayStage,
   pharmacotherapyPathwayStages,
   pharmacotherapyPathwaySummary,
   type PharmacotherapyPathwayStage,
   type PathwayRequirement,
+  type StageCurriculumItem,
   type PathwayStageStatus,
 } from "./pharmacotherapy-pathway";
 
@@ -131,6 +133,114 @@ function RequirementRow({ requirement }: { requirement: PathwayRequirement }) {
         {config.label}
       </span>
     </li>
+  );
+}
+
+function CurriculumItemCard({ item }: { item: StageCurriculumItem }) {
+  const isSplitAcrossYears = item.allocatedCredits !== item.totalCredits;
+
+  return (
+    <li className="rounded-2xl border border-border bg-surface-container-low p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs font-semibold text-primary">
+            {item.code}
+          </span>
+          <Badge variant={item.requirementMode === "choose_one" ? "info" : "neutral"}>
+            {item.requirementMode === "choose_one" ? "เลือก 1 สาขา" : "ต้องเรียน"}
+          </Badge>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="font-bold tabular-nums text-foreground">
+            {item.allocatedCredits} หน่วยกิต
+          </p>
+          {isSplitAcrossYears ? (
+            <p className="text-[11px] text-muted-foreground">จากทั้งหมด {item.totalCredits} หน่วยกิต</p>
+          ) : null}
+        </div>
+      </div>
+
+      <h4 className="mt-3 font-semibold leading-snug text-foreground">{item.titleTh}</h4>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.titleEn}</p>
+      <p className="mt-3 text-sm leading-relaxed text-foreground/80">{item.description}</p>
+
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
+        <span>{item.officialCategory}</span>
+        <span>{item.creditBreakdown}</span>
+        <span>{item.allocatedHours ?? item.hours}</span>
+      </div>
+
+      {item.note ? (
+        <p className="mt-3 rounded-xl border border-info-border bg-info-soft px-3 py-2 text-xs leading-relaxed text-info-on-soft">
+          {item.note}
+        </p>
+      ) : null}
+
+      {item.options?.length ? (
+        <details className="group mt-3 rounded-xl border border-border bg-card">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+            <span>เลือกฝึก 1 ด้านจาก {item.options.length} ด้าน</span>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined text-xl text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
+            >
+              expand_more
+            </span>
+          </summary>
+          <ul className="grid gap-2 border-t border-border p-3 sm:grid-cols-2">
+            {item.options.map((option) => (
+              <li key={option.code} className="rounded-lg bg-surface-container-low px-3 py-2">
+                <p className="font-mono text-xs font-semibold text-primary">{option.code}</p>
+                <p className="mt-1 text-sm font-medium text-foreground">{option.titleTh}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{option.titleEn}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </li>
+  );
+}
+
+function StageCurriculumSection({ stage }: { stage: PharmacotherapyPathwayStage }) {
+  const curriculum = curriculumForPathwayStage(stage.id);
+  if (curriculum.length === 0) return null;
+
+  const allocatedCredits = curriculum.reduce(
+    (total, item) => total + item.allocatedCredits,
+    0,
+  );
+
+  return (
+    <section className="border-t border-border pt-5 lg:col-span-2" aria-labelledby="stage-curriculum-title">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h3 id="stage-curriculum-title" className="text-sm font-semibold text-foreground">
+            รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            รายวิชาที่ต้องเรียนหรือเลือกตามข้อกำหนดของ {stage.shortLabel}
+          </p>
+        </div>
+        <p className="text-sm font-semibold tabular-nums text-foreground">
+          {curriculum.length} {curriculum.length === 1 ? "องค์ประกอบ" : "รายวิชา"} · {allocatedCredits} หน่วยกิตในปีนี้
+        </p>
+      </div>
+
+      <ul
+        aria-label={`รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ${stage.shortLabel}`}
+        className="mt-4 grid gap-3 xl:grid-cols-2"
+      >
+        {curriculum.map((item) => (
+          <CurriculumItemCard key={`${stage.id}-${item.componentId}`} item={item} />
+        ))}
+      </ul>
+
+      <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+        <span aria-hidden="true" className="material-symbols-outlined mt-0.5 text-base">description</span>
+        อ้างอิงคู่มือฝึกอบรมวุฒิบัตร 4 ปี สาขาเภสัชบำบัด ฉบับ 2568 หน้า 59–68
+      </p>
+    </section>
   );
 }
 
@@ -522,6 +632,8 @@ export default function MemberPathwayPage() {
                 ))}
               </ul>
             </div>
+
+            <StageCurriculumSection stage={selectedStage} />
           </CardContent>
         </Card>
       </section>

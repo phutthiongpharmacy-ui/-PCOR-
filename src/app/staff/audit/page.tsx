@@ -1,2 +1,5 @@
-import StaffAuditPage from "@/roles/staff/features/audit/StaffAuditPage";
-export default StaffAuditPage;
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/staff/dashboard");
+}

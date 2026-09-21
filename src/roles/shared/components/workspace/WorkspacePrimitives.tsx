@@ -10,17 +10,21 @@ export function WorkspaceHeader({
   title,
   description,
   action,
+  headingLevel = "h1",
 }: {
   eyebrow?: string;
   title: string;
   description: string;
   action?: { href: string; label: string; icon?: string };
+  headingLevel?: "h1" | "h2";
 }) {
+  const Heading = headingLevel;
+
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         {eyebrow ? <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">{eyebrow}</p> : null}
-        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h1>
+        <Heading className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</Heading>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>
       </div>
       {action ? <Button asChild className="shrink-0"><Link href={action.href}>{action.icon ? <span aria-hidden="true" className="material-symbols-outlined text-lg">{action.icon}</span> : null}{action.label}</Link></Button> : null}

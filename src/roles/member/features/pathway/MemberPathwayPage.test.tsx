@@ -132,4 +132,46 @@ describe("MemberPathwayPage", () => {
       screen.getByRole("region", { name: "Specialized Residency ปี 3" }),
     ).toBeTruthy();
   });
+
+  it("shows the source-backed compulsory curriculum for each training year", () => {
+    render(<MemberPathwayPage />);
+
+    const roadmap = screen.getByRole("list", {
+      name: "ลำดับเส้นทางการเรียนเภสัชบำบัด 4 ปี",
+    });
+
+    fireEvent.click(within(roadmap).getByRole("button", {
+      name: /ปี 1: การฝึกอบรมปี 1/,
+    }));
+    const yearOneCourses = screen.getByRole("list", {
+      name: "รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ปี 1",
+    });
+    for (const code of ["01-1101", "01-1201", "01-1301", "01-1302", "01-1303", "01-1401"]) {
+      expect(within(yearOneCourses).getByText(code)).toBeTruthy();
+    }
+    expect(within(yearOneCourses).getAllByText("ต้องเรียน")).toHaveLength(6);
+
+    fireEvent.click(within(roadmap).getByRole("button", {
+      name: /ปี 2: Specialized Residency ปี 2/,
+    }));
+    const yearTwoCourses = screen.getByRole("list", {
+      name: "รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ปี 2",
+    });
+    expect(within(yearTwoCourses).getByText("01-2401–01-2413")).toBeTruthy();
+    expect(within(yearTwoCourses).getByText("32 หน่วยกิต")).toBeTruthy();
+    expect(within(yearTwoCourses).getByText("จากทั้งหมด 64 หน่วยกิต")).toBeTruthy();
+    const specialtyDisclosure = within(yearTwoCourses).getByText("เลือกฝึก 1 ด้านจาก 13 ด้าน");
+    fireEvent.click(specialtyDisclosure);
+    expect(within(yearTwoCourses).getByText("01-2401")).toBeTruthy();
+    expect(within(yearTwoCourses).getByText("01-2413")).toBeTruthy();
+
+    fireEvent.click(within(roadmap).getByRole("button", {
+      name: /ปี 4: Research Fellowship ปี 4/,
+    }));
+    const yearFourCourses = screen.getByRole("list", {
+      name: "รายวิชาและองค์ประกอบตามโครงสร้างหลักสูตร ปี 4",
+    });
+    expect(within(yearFourCourses).getByText("01-4501")).toBeTruthy();
+    expect(within(yearFourCourses).getByText("การฝึกอบรมด้านการทำวิจัยเชิงปฏิบัติการ")).toBeTruthy();
+  });
 });
