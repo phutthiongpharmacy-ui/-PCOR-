@@ -100,6 +100,7 @@ function normalizeCategory(value: unknown): RequestCategoryId | "legacy" | null 
     value === "exam" ||
     value === "certificate" ||
     value === "training" ||
+    value === "credit_transfer" ||
     value === "internship_letter" ||
     value === "completion" ||
     value === "legacy"

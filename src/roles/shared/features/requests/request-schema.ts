@@ -4,6 +4,7 @@ export type RequestCategoryId =
   | "exam"
   | "certificate"
   | "training"
+  | "credit_transfer"
   | "internship_letter"
   | "completion";
 
@@ -403,6 +404,108 @@ export const REQUEST_CATALOG: readonly RequestCategoryDefinition[] = [
         id: "training-evidence",
         label: "หลักฐานประกอบคำร้อง (ถ้ามี)",
         helpText: "รองรับ PDF, JPG หรือ PNG ขนาดไม่เกิน 5 MB",
+        acceptedTypes: DOCUMENT_TYPES,
+        maxBytes: FIVE_MEGABYTES,
+      },
+    ],
+  },
+  {
+    id: "credit_transfer",
+    code: "ทอ",
+    name: "การเทียบโอนหน่วยกิต",
+    description: "ยื่นเทียบโอนหนึ่งรายวิชาต่อคำร้อง พร้อมผลการเรียนและคำอธิบายรายวิชา",
+    icon: "published_with_changes",
+    fields: [
+      {
+        id: "targetCourse",
+        label: "รหัสและชื่อรายวิชาที่ขอเทียบโอน",
+        type: "text",
+        required: true,
+        placeholder: "เช่น วภท-301 องค์ความรู้ทางเภสัชบำบัดเฉพาะทาง",
+        helpText: "กรอกหนึ่งรายวิชาต่อหนึ่งคำร้อง เพื่อให้ตรวจสอบผลเทียบเท่าได้ชัดเจน",
+      },
+      {
+        id: "program",
+        label: "หลักสูตรปัจจุบัน",
+        type: "text",
+        required: true,
+        placeholder: "ระบุหลักสูตรและสาขา",
+      },
+      {
+        id: "sourceType",
+        label: "แหล่งที่มาของหน่วยกิต",
+        type: "select",
+        required: true,
+        options: [
+          "รายวิชาจากสถาบันการศึกษาอื่น",
+          "หลักสูตรระยะสั้นหรือ Micro-credential",
+          "การฝึกอบรมหรือประสบการณ์วิชาชีพ",
+        ],
+      },
+      {
+        id: "sourceInstitution",
+        label: "สถาบัน / หน่วยงานต้นทาง",
+        type: "text",
+        required: true,
+        placeholder: "ระบุชื่อสถาบันหรือหน่วยงานที่ออกผลการเรียน",
+      },
+      {
+        id: "sourceCourse",
+        label: "รายวิชาหรือหลักสูตรที่เรียนมา",
+        type: "text",
+        required: true,
+        placeholder: "ระบุรหัสและชื่อรายวิชาหรือหลักสูตรต้นทาง",
+      },
+      {
+        id: "sourceCompletionDate",
+        label: "วันที่สำเร็จการเรียนหรืออบรม",
+        type: "date",
+        required: true,
+      },
+      {
+        id: "sourceResult",
+        label: "ผลการเรียน / ผลการประเมิน",
+        type: "text",
+        required: true,
+        placeholder: "เช่น S, ผ่าน หรือ A",
+      },
+      {
+        id: "sourceCredits",
+        label: "หน่วยกิตจากหลักสูตรต้นทาง",
+        type: "number",
+        required: true,
+        min: 1,
+        placeholder: "เช่น 3",
+      },
+      {
+        id: "requestedCredits",
+        label: "จำนวนหน่วยกิตที่ขอเทียบโอน",
+        type: "number",
+        required: true,
+        min: 1,
+        placeholder: "เช่น 3",
+      },
+      {
+        id: "transferReason",
+        label: "รายละเอียดประกอบการพิจารณา",
+        type: "textarea",
+        placeholder: "อธิบายความสอดคล้องของเนื้อหาและผลลัพธ์การเรียนรู้ (ถ้ามี)",
+      },
+    ],
+    documents: [
+      {
+        id: "credit-transfer-transcript",
+        label: "ผลการเรียนหรือใบรับรองการสำเร็จ",
+        helpText: "แนบเอกสารทางการจากสถาบันต้นทาง รองรับ PDF, JPG หรือ PNG ขนาดไม่เกิน 5 MB",
+        required: true,
+        acceptedTypes: DOCUMENT_TYPES,
+        maxBytes: FIVE_MEGABYTES,
+      },
+      {
+        id: "credit-transfer-syllabus",
+        label: "คำอธิบายรายวิชา / Syllabus",
+        helpText: "แนบรายละเอียดเนื้อหา ชั่วโมงเรียน และผลลัพธ์การเรียนรู้ รองรับ PDF, JPG หรือ PNG ขนาดไม่เกิน 5 MB",
+        required: true,
         acceptedTypes: DOCUMENT_TYPES,
         maxBytes: FIVE_MEGABYTES,
       },

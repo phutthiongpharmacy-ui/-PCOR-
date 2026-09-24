@@ -57,6 +57,26 @@ describe("request workflow", () => {
     expect(category?.documents).toHaveLength(2);
   });
 
+  it("defines a credit-transfer category with structured fields and required evidence", () => {
+    const category = REQUEST_CATALOG.find((item) => item.id === "credit_transfer");
+
+    expect(category).toMatchObject({
+      code: "ทอ",
+      name: "การเทียบโอนหน่วยกิต",
+    });
+    expect(category?.fields.map((field) => field.id)).toEqual(expect.arrayContaining([
+      "targetCourse",
+      "program",
+      "sourceType",
+      "sourceInstitution",
+      "sourceCourse",
+      "sourceCredits",
+      "requestedCredits",
+    ]));
+    expect(category?.documents).toHaveLength(2);
+    expect(category?.documents?.every((document) => document.required)).toBe(true);
+  });
+
   it("allows only the assigned role transitions", () => {
     expect(canTransitionRequest("staff_review", "awaiting_president_signature", "royal_college_staff")).toBe(true);
     expect(canTransitionRequest("awaiting_president_signature", "signed", "president")).toBe(true);
@@ -84,6 +104,20 @@ describe("request workflow", () => {
 });
 
 describe("request-store migration", () => {
+  it("preserves credit-transfer requests when reading stored data", () => {
+    const stored = normalizeStoredRequest({
+      ...baseRequest,
+      id: "ทอ-2569-001",
+      categoryId: "credit_transfer",
+      typeLabel: "การเทียบโอนหน่วยกิต",
+      title: "การเทียบโอนหน่วยกิต: วภท-301",
+      fields: [{ id: "targetCourse", label: "รหัสและชื่อรายวิชาที่ขอเทียบโอน", value: "วภท-301" }],
+    });
+
+    expect(stored?.categoryId).toBe("credit_transfer");
+    expect(stored?.typeLabel).toBe("การเทียบโอนหน่วยกิต");
+  });
+
   it("migrates v1 status, attachment, and reviewer note", () => {
     const migrated = normalizeStoredRequest({
       id: "old-1",

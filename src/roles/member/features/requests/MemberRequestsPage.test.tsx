@@ -40,6 +40,67 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("MemberRequestsPage", () => {
+  it("submits a credit-transfer request with the required academic evidence", () => {
+    render(<MemberRequestsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /ยื่นคำร้องใหม่/ }));
+    fireEvent.click(screen.getByRole("button", { name: /การเทียบโอนหน่วยกิต/ }));
+    fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
+
+    expect((screen.getByLabelText(/หลักสูตรปัจจุบัน/) as HTMLInputElement).value).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/รหัสและชื่อรายวิชาที่ขอเทียบโอน/), {
+      target: { value: "วภท-301 องค์ความรู้ทางเภสัชบำบัดเฉพาะทาง" },
+    });
+    fireEvent.change(screen.getByLabelText(/แหล่งที่มาของหน่วยกิต/), {
+      target: { value: "หลักสูตรระยะสั้นหรือ Micro-credential" },
+    });
+    fireEvent.change(screen.getByLabelText(/สถาบัน \/ หน่วยงานต้นทาง/), {
+      target: { value: "มหาวิทยาลัยมหิดล" },
+    });
+    fireEvent.change(screen.getByLabelText(/รายวิชาหรือหลักสูตรที่เรียนมา/), {
+      target: { value: "Advanced Clinical Pharmacotherapy" },
+    });
+    fireEvent.change(screen.getByLabelText(/วันที่สำเร็จการเรียนหรืออบรม/), {
+      target: { value: "2026-08-15" },
+    });
+    fireEvent.change(screen.getByLabelText(/ผลการเรียน \/ ผลการประเมิน/), {
+      target: { value: "S" },
+    });
+    fireEvent.change(screen.getByLabelText(/หน่วยกิตจากหลักสูตรต้นทาง/), {
+      target: { value: "3" },
+    });
+    fireEvent.change(screen.getByLabelText(/จำนวนหน่วยกิตที่ขอเทียบโอน/), {
+      target: { value: "3" },
+    });
+
+    fireEvent.change(screen.getByLabelText(/ผลการเรียนหรือใบรับรองการสำเร็จ/, { selector: "input" }), {
+      target: { files: [new File(["transcript"], "transcript.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.change(screen.getByLabelText(/คำอธิบายรายวิชา \/ Syllabus/, { selector: "input" }), {
+      target: { files: [new File(["syllabus"], "syllabus.pdf", { type: "application/pdf" })] },
+    });
+
+    expect(screen.getByText("transcript.pdf")).toBeTruthy();
+    expect(screen.getByText("syllabus.pdf")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
+    expect(screen.getByText(/transcript\.pdf/)).toBeTruthy();
+    expect(screen.getByText(/syllabus\.pdf/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "ยืนยันการยื่นคำร้อง" }));
+
+    expect(requestStore.addRequest).toHaveBeenCalledOnce();
+    expect(requestStore.addRequest.mock.calls[0][0]).toMatchObject({
+      categoryId: "credit_transfer",
+      typeLabel: "การเทียบโอนหน่วยกิต",
+      title: "การเทียบโอนหน่วยกิต: วภท-301 องค์ความรู้ทางเภสัชบำบัดเฉพาะทาง",
+      status: "staff_review",
+      courses: [],
+      documents: [
+        expect.objectContaining({ id: "credit-transfer-transcript", reviewStatus: "pending" }),
+        expect.objectContaining({ id: "credit-transfer-syllabus", reviewStatus: "pending" }),
+      ],
+    });
+  });
+
   it("omits related courses from the new-request wizard and submitted request", () => {
     render(<MemberRequestsPage />);
 
